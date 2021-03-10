@@ -40,8 +40,8 @@ public class DetermineVRController : Singleton<DetermineVRController>
 
             bool knucklesControllerLeft = false;
             bool knucklesControllerRight = false;
-            bool viveControllerLeft = false;
-            bool viveControllerRight = false;
+            //bool viveControllerLeft = false;
+            //bool viveControllerRight = false;
 
             int numKnucklesControllers = 0;
             int numViveControllers = 0;
