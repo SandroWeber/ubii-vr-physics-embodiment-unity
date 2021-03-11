@@ -177,14 +177,18 @@ public class AvatarPhysicsManager : MonoBehaviour
 
                             string boneName = armatureBoneTransform.name.Substring(prefixArmature.Length);
                             //Debug.Log(boneName);
-                            GameObject geometry = GameObject.Find(prefixGeometrySurfaces + boneName);
-                            /*if (geometry == null)
+                            GameObject boneGeometryGameObject = GameObject.Find(prefixGeometrySurfaces + boneName);
+                            /*string parentBoneName = armatureBoneTransform.parent.name.Substring(prefixArmature.Length);
+                            GameObject parentBoneGameObject = GameObject.Find(prefixGeometrySurfaces + boneName);
+                            if (boneGameObject == null)
                             {
-                                geometry = GameObject.Find(prefixGeometryJoints + boneName);
+                                boneGameObject = GameObject.Find(prefixGeometryJoints + boneName);
                             }*/
-                            //Debug.Log(geometry);
-                            AddPhysicsComponents(armatureBoneTransform.gameObject, geometry);
+                            //Debug.Log(boneGameObject);
+                            AddPhysicsComponents(armatureBoneTransform.gameObject, boneGeometryGameObject);
                             mapBone2GameObject.Add(bone, armatureBoneTransform.gameObject);
+                            /*AddPhysicsComponents2(bone, boneGeometryGameObject, parentBoneGameObject);
+                            mapBone2GameObject.Add(bone, boneGeometryGameObject);*/
                         }
                         //Transform armatureBoneTransformLocalAvatar = animatorLocalAvatar.GetarmatureBoneTransform(bone);
                         //We have to skip unassigned bodyparts.
@@ -311,6 +315,51 @@ public class AvatarPhysicsManager : MonoBehaviour
         }
     }
 
+    void AddPhysicsComponents2(HumanBodyBones bone, GameObject boneObject, GameObject parentBoneObject)
+    {
+        if (boneObject == null) return;
+        
+        SkinnedMeshRenderer renderer = boneObject.GetComponent<SkinnedMeshRenderer>();
+        MeshCollider collider = boneObject.AddComponent<MeshCollider>();
+        collider.convex = true;
+        collider.sharedMesh = renderer.sharedMesh;
+        //boneObject.transform.parent = armatureBone.transform;
+        renderer.enabled = false;
+
+        Rigidbody rigidbody = boneObject.GetComponent<Rigidbody>();
+        if (rigidbody == null)
+        {
+            rigidbody = boneObject.AddComponent<Rigidbody>();
+        }
+        rigidbody.useGravity = this.useGravity;
+
+        if (this.useJoints)
+        {
+            Joint joint = null;
+            if (jointType == JOINT_TYPE.CONFIGURABLE_JOINT) {
+                ConfigurableJoint configurableJoint = parentBoneObject.transform.parent.gameObject.AddComponent<ConfigurableJoint>();
+                configurableJoint.xMotion = ConfigurableJointMotion.Locked;
+                configurableJoint.yMotion = ConfigurableJointMotion.Locked;
+                configurableJoint.zMotion = ConfigurableJointMotion.Locked;
+                if (boneObject == null)
+                {
+                    configurableJoint.angularXMotion = ConfigurableJointMotion.Locked;
+                    configurableJoint.angularYMotion = ConfigurableJointMotion.Locked;
+                    configurableJoint.angularZMotion = ConfigurableJointMotion.Locked;
+                }
+                joint = configurableJoint;
+            }
+            else if (jointType == JOINT_TYPE.CHARACTER_JOINT)
+            {
+                CharacterJoint characterJoint = parentBoneObject.transform.parent.gameObject.AddComponent<CharacterJoint>();
+                joint = characterJoint;
+            }
+            
+            joint.connectedBody = rigidbody;
+            //joint.enableCollision = true;
+        }
+    }
+
     void SetTargetTransformFromArmatureJoint(HumanBodyBones bone, Transform armatureJointTransform)
     {
         //Debug.Log("#######");
@@ -371,6 +420,17 @@ public class AvatarPhysicsManager : MonoBehaviour
         if (mapBone2TargetPosition.ContainsKey(bone))
         {
             Vector3 targetPosition = mapBone2TargetPosition[bone];
+
+            /*string targetIndicatorName = "target-indicator_" + rigidbody.name;
+            GameObject targetIndicator = GameObject.Find(targetIndicatorName);
+            if (!targetIndicator)
+            {
+                targetIndicator = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                targetIndicator.name = targetIndicatorName;
+                targetIndicator.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            }
+            targetIndicator.transform.position = new Vector3(targetPosition.x, targetPosition.y, targetPosition.z);*/
+
             Vector3 positionDelta = GetPositionError(currentTransform.position, targetPosition);
             Vector3 targetVelocity = positionDelta / Time.deltaTime;
             if (this.testActuateApplyLinearForce || bone == HumanBodyBones.Hips) ApplyForce(targetVelocity, rigidbody, resetVelocityCalculation);
