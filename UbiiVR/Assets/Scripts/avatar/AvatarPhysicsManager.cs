@@ -287,6 +287,7 @@ public class AvatarPhysicsManager : MonoBehaviour
             rigidbody = armatureBone.AddComponent<Rigidbody>();
         }
         rigidbody.useGravity = this.useGravity;
+        armatureBone.layer = 8;
 
         if (this.useJoints)
         {
