@@ -103,6 +103,21 @@ public class AvatarPhysicsManager : MonoBehaviour
 
         if (initialized && testActuateRigidBody)
         {
+            Animator poseTrackingAnimator = avatarPoseTracking.GetComponent<Animator>();
+
+            foreach (HumanBodyBones bone in System.Enum.GetValues(typeof(HumanBodyBones)))
+            {
+                //LastBone is not mapped to a bodypart, we need to skip it.
+                if (bone != HumanBodyBones.LastBone)
+                {
+                    Transform armatureBoneTransform = animator.GetBoneTransform(bone);
+                    if (armatureBoneTransform != null)
+                    {
+                        SetTargetTransformFromArmatureJoint(bone, poseTrackingAnimator.GetBoneTransform(bone));
+                    }
+                }
+            }
+
             foreach(KeyValuePair<HumanBodyBones, GameObject> entry in mapBone2GameObject)
             {
                 Rigidbody rigidbody = this.GetRigidbodyFromBone(entry.Key);
@@ -167,14 +182,6 @@ public class AvatarPhysicsManager : MonoBehaviour
                         //Debug.Log(bone);
                         if (armatureBoneTransform != null)
                         {
-                            // TEST code
-                            /*if (bone == HumanBodyBones.Hips)
-                            {
-                                testInitialHipTransform = armatureBoneTransform;
-                                Debug.Log(testInitialHipTransform);
-                            }*/
-                            SetTargetTransformFromArmatureJoint(bone, poseTrackingAnimator.GetBoneTransform(bone));
-
                             string boneName = armatureBoneTransform.name.Substring(prefixArmature.Length);
                             //Debug.Log(boneName);
                             GameObject boneGeometryGameObject = GameObject.Find(prefixGeometrySurfaces + boneName);
@@ -373,12 +380,15 @@ public class AvatarPhysicsManager : MonoBehaviour
         // we need to interpolate the true target position between it and all its child joint positions
         // to arrive at an estimate center position where the bone would be
         targetPosition.Set(armaturePosition.x, armaturePosition.y, armaturePosition.z);
-        foreach (Transform child in armatureJointTransform)
+        if (bone != HumanBodyBones.UpperChest)
         {
-            //Debug.Log(child);
-            targetPosition += child.position;
+            foreach (Transform child in armatureJointTransform)
+            {
+                targetPosition += child.position;
+            }
+            targetPosition /= armatureJointTransform.childCount + 1;
         }
-        targetPosition /= armatureJointTransform.childCount + 1;
+        
         //Debug.Log(targetPosition);
         if (!this.mapBone2TargetPosition.ContainsKey(bone))
         {
