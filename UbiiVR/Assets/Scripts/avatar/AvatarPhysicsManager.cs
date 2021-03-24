@@ -444,7 +444,10 @@ public class AvatarPhysicsManager : MonoBehaviour
 
             Vector3 positionDelta = GetPositionError(currentTransform.position, targetPosition);
             Vector3 targetVelocity = positionDelta / Time.deltaTime;
-            if (this.testActuateApplyLinearForce || bone == HumanBodyBones.Hips) ApplyForce(targetVelocity, rigidbody, resetVelocityCalculation);
+            if (this.testActuateApplyLinearForce || bone == HumanBodyBones.Hips)
+            {
+                UserAvatarForceControl.AddForceFromTargetLinearVelocity(rigidbody, targetVelocity);
+            }
         }
 
         if (mapBone2TargetRotation.ContainsKey(bone))
@@ -468,7 +471,10 @@ public class AvatarPhysicsManager : MonoBehaviour
             {
                 angularSpeed = new Vector3(angularSpeed.x, angularSpeed.y, angularSpeed.z);
             }
-            if (this.testActuateApplyAngularForce) ApplyTorque(angularSpeed, rigidbody, resetVelocityCalculation);
+            if (this.testActuateApplyAngularForce) 
+            {
+                UserAvatarForceControl.AddTorqueFromTargetAngularVelocity(rigidbody, angularSpeed);
+            }
         }
         /*Debug.Log(rigidbody);
         Debug.Log(currentTransform.position);
@@ -506,42 +512,6 @@ public class AvatarPhysicsManager : MonoBehaviour
          rigidbody.AddTorque(T, ForceMode.Impulse) */
 
         //recorder.RecordCodomain(time, velo, angularSpeed, entry.Key.gameObject.name);
-    }
-    
-    public static void ApplyForce(Vector3 targetLinearVelocity, Rigidbody rigidbody, bool reset)
-    {
-        if (reset)
-        {
-            rigidbody.velocity = Vector3.zero;
-        }
-        Vector3 previousVelocity = rigidbody.velocity;
-        Vector3 newVelocity = (targetLinearVelocity - previousVelocity);
-        rigidbody.AddForce(newVelocity / Time.deltaTime, ForceMode.Acceleration);
-    }
-
-    public static void ApplyTorque(Vector3 targetAngularVelocity, Rigidbody rigidbody, bool reset)
-    {
-        if(reset)
-        {
-            rigidbody.angularVelocity = Vector3.zero;
-        }
-        Vector3 newAngularVelocity = targetAngularVelocity - rigidbody.angularVelocity;
-        /*Vector3 prefAnguLocal = rigidbody.gameObject.transform.InverseTransformDirection(newAngularVelocity);
-        Vector3 TorqueLocal;
-        Vector3 prefAnguTemp = prefAnguLocal;
-        prefAnguTemp = rigidbody.inertiaTensorRotation * prefAnguTemp;
-        prefAnguTemp.Scale(rigidbody.inertiaTensor);
-        TorqueLocal = Quaternion.Inverse(rigidbody.inertiaTensorRotation) * prefAnguTemp;
-
-        Vector3 Torque = rigidbody.gameObject.transform.TransformDirection(TorqueLocal);
-        */
-        if (reset)
-            rigidbody.AddTorque(newAngularVelocity / Time.deltaTime, ForceMode.Force);
-        else
-        {
-            //rigidbody.angularVelocity = Vector3.zero;
-            rigidbody.AddTorque(newAngularVelocity / Time.deltaTime, ForceMode.Acceleration);
-        }
     }
 
     /*void AssignPDController(HumanBodyBones bone)

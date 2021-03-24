@@ -21,6 +21,11 @@ public class AnimationManager : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            playAnimationLoop = !playAnimationLoop;
+        }
+        
         if (animator != null && lastStatePlayAnimationLoop != playAnimationLoop)
         {
             if (playAnimationLoop) {
