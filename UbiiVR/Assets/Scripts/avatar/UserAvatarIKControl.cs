@@ -1,12 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
+
+using static TrackingIKTargetManager;
 
 [RequireComponent(typeof(Animator))]
 
 public class UserAvatarIKControl : MonoBehaviour
 {
-    [SerializeField] public bool ikActive = true;
+    [SerializeField] private bool ikActive = true;
+    [SerializeField] private bool usePseudoTopicData = true;
     [SerializeField] private TrackingIKTargetManager trackingIKTargetManager;
     [SerializeField] private TrackingHandManager trackingHandManager;
     [SerializeField] private Pose manualBodyOffset;
@@ -15,56 +19,84 @@ public class UserAvatarIKControl : MonoBehaviour
 
     protected Animator animator;
 
-    private Transform ikTargetHead = null;
-    private Transform ikTargetHip = null;
-    private Transform ikTargetLeftHand = null;
-    private Transform ikTargetRightHand = null;
-    private Transform ikTargetLeftFoot = null;
-    private Transform ikTargetRightFoot = null;
-    private Transform ikTargetLookAt = null;
-
+    private Dictionary<IK_TARGET, Transform> ikTargets = new Dictionary<IK_TARGET, Transform>();
     private Queue<Vector3> groundCenterTrajectory = new Queue<Vector3>();
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
+    private PseudoTopicData topicData = null;
 
-    // Use this for initialization
     void Start()
     {
         animator = GetComponent<Animator>();
-    }
+        topicData = PseudoTopicData.Instance;
 
-    // Update is called once per frame
-    void Update()
-    {
-        // initialize
-        if (animator && ikActive && trackingIKTargetManager.IsReady() && ikTargetHead == null)
+        if (usePseudoTopicData)
         {
-            ikTargetHead = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.HEAD);
-            ikTargetLookAt = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.VIEWING_DIRECTION);
-            ikTargetHip = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.HIP);
-            ikTargetLeftHand = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.HAND_LEFT);
-            ikTargetRightHand = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.HAND_RIGHT);
-            ikTargetLeftFoot = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.FOOT_LEFT);
-            ikTargetRightFoot = trackingIKTargetManager.GetIKTargetTransform(TrackingIKTargetManager.BODY_PART.FOOT_RIGHT);
-
-            //UserAvatarService.Instance.SpawnYBot();
+            foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+            {
+                GameObject ikTargetObject = new GameObject("IK Target TopicData " + ikTarget.ToString());
+                ikTargets.Add(ikTarget, ikTargetObject.transform);
+            }
             initialized = true;
         }
     }
 
-    //a callback for calculating IK
+    void OnEnable()
+    {
+        TrackingIKTargetManager.OnInitialized += InitDirectIKTargets;
+    }
+
+    void OnDisable()
+    {
+        TrackingIKTargetManager.OnInitialized -= InitDirectIKTargets;
+    }
+
+    void InitDirectIKTargets()
+    {
+        if (usePseudoTopicData || !ikActive) return;
+
+        /*ikTargetHead = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HEAD);
+        ikTargetLookAt = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.VIEWING_DIRECTION);
+        ikTargetHip = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HIP);
+        ikTargetLeftHand = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HAND_LEFT);
+        ikTargetRightHand = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HAND_RIGHT);
+        ikTargetLeftFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_LEFT);
+        ikTargetRightFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_RIGHT);*/
+        foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        {
+            ikTargets.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
+        }
+        initialized = true;
+    }
+
+    void Update()
+    {
+        if (usePseudoTopicData && initialized)
+        {
+            UpdateFromPseudoTopicData();
+        }
+    }
+
     void OnAnimatorIK()
     {
         if (!initialized)
         {
             return;
         }
+        
+        Transform ikTargetHip = ikTargets[IK_TARGET.HIP];
+        Transform ikTargetLookAt = ikTargets[IK_TARGET.VIEWING_DIRECTION];
+        Transform ikTargetHead = ikTargets[IK_TARGET.HEAD];
+        Transform ikTargetLeftHand = ikTargets[IK_TARGET.HAND_LEFT];
+        Transform ikTargetRightHand = ikTargets[IK_TARGET.HAND_RIGHT];
+        Transform ikTargetLeftFoot = ikTargets[IK_TARGET.FOOT_LEFT];
+        Transform ikTargetRightFoot = ikTargets[IK_TARGET.FOOT_RIGHT];
 
         // position body
         if (ikTargetHip != null)
         {
-            this.transform.position = ikTargetHip.position + manualBodyOffset.position;
-            this.transform.rotation = new Quaternion(
+            animator.bodyPosition = ikTargetHip.position + manualBodyOffset.position;
+            animator.bodyRotation = new Quaternion(
                 ikTargetHip.rotation.x + manualBodyOffset.rotation.x,
                 ikTargetHip.rotation.y + manualBodyOffset.rotation.y,
                 ikTargetHip.rotation.z + manualBodyOffset.rotation.z,
@@ -210,6 +242,17 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             HumanBodyBones bone = (HumanBodyBones)i;
             this.animator.GetBoneTransform(bone).rotation = trackingHandManager.GetRemotePoseTarget(bone).rotation;
+        }
+    }
+
+    private void UpdateFromPseudoTopicData()
+    {
+        foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        {
+            //Debug.Log(ikTargets[ikTarget]);
+            //Debug.Log(topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget)));
+            ikTargets[ikTarget].position = topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
+            ikTargets[ikTarget].rotation = topicData.GetQuaternion(PseudoTopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
         }
     }
 }

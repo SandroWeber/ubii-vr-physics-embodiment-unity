@@ -4,7 +4,7 @@ using Valve.VR;
 
 public class TrackingIKTargetManager : MonoBehaviour
 {
-    public enum BODY_PART
+    public enum IK_TARGET
     {
         HEAD = 0,
         VIEWING_DIRECTION,
@@ -23,6 +23,9 @@ public class TrackingIKTargetManager : MonoBehaviour
         public SteamVR_TrackedObject trackedObject;
     }
 
+    public delegate void OnInitializedAction();
+    public static event OnInitializedAction OnInitialized;
+
     [Tooltip("Use mocks instead of real IK targets where necessary.")]
     [SerializeField] private bool debugUseMockIKTargets = false;
 
@@ -33,9 +36,9 @@ public class TrackingIKTargetManager : MonoBehaviour
 
     private Dictionary<uint, TrackingReferenceObject> trackingReferences = new Dictionary<uint, TrackingReferenceObject>();
     private Dictionary<uint, SteamVR_Input_Sources> dictSteamVRInputSources = new Dictionary<uint, SteamVR_Input_Sources>();
-    private Dictionary<BODY_PART, Transform> trackingTargets = new Dictionary<BODY_PART, Transform>();
+    private Dictionary<IK_TARGET, Transform> trackingTargets = new Dictionary<IK_TARGET, Transform>();
 
-    private Dictionary<BODY_PART, GameObject> ikTargets = new Dictionary<BODY_PART, GameObject>();
+    private Dictionary<IK_TARGET, GameObject> ikTargets = new Dictionary<IK_TARGET, GameObject>();
 
     // Bachelors Thesis VRHand
     [SerializeField] public GameObject vrGlovesWristLeft;
@@ -103,6 +106,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         }
 
         initialized = true;
+        OnInitialized();
 
         Debug.Log("OnControllerGripPress() - ... done");
     }
@@ -142,7 +146,7 @@ public class TrackingIKTargetManager : MonoBehaviour
             if (trackingReference.trackedDeviceClass == ETrackedDeviceClass.HMD)
             {
                 //trackingTargetHead = trackingReference.gameObject.transform;
-                trackingTargets.Add(BODY_PART.HEAD, trackingReference.gameObject.transform);
+                trackingTargets.Add(IK_TARGET.HEAD, trackingReference.gameObject.transform);
                 dictSteamVRInputSources.Add(deviceIndex, SteamVR_Input_Sources.Head);
             }
 
@@ -151,13 +155,13 @@ public class TrackingIKTargetManager : MonoBehaviour
                 if (OpenVR.System.GetControllerRoleForTrackedDeviceIndex(deviceIndex) == ETrackedControllerRole.LeftHand)
                 {
                     //trackingTargetHandLeft = trackingReference.gameObject.transform;
-                    trackingTargets.Add(BODY_PART.HAND_LEFT, trackingReference.gameObject.transform);
+                    trackingTargets.Add(IK_TARGET.HAND_LEFT, trackingReference.gameObject.transform);
                     dictSteamVRInputSources.Add(deviceIndex, SteamVR_Input_Sources.LeftHand);
                 }
                 else if (OpenVR.System.GetControllerRoleForTrackedDeviceIndex(deviceIndex) == ETrackedControllerRole.RightHand)
                 {
                     //trackingTargetHandRight = trackingReference.gameObject.transform;
-                    trackingTargets.Add(BODY_PART.HAND_RIGHT, trackingReference.gameObject.transform);
+                    trackingTargets.Add(IK_TARGET.HAND_RIGHT, trackingReference.gameObject.transform);
                     dictSteamVRInputSources.Add(deviceIndex, SteamVR_Input_Sources.RightHand);
                 }
 
@@ -172,7 +176,7 @@ public class TrackingIKTargetManager : MonoBehaviour
                 if (trackingReference.gameObject.transform.position.y >= 0.5f)
                 {
                     //trackingTargetBody = trackingReference.gameObject.transform;
-                    trackingTargets.Add(BODY_PART.HIP, trackingReference.gameObject.transform);
+                    trackingTargets.Add(IK_TARGET.HIP, trackingReference.gameObject.transform);
                 }
                 // else feet tracker
                 else
@@ -190,7 +194,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         }
         else
         {
-            Transform trackingTargetHead = trackingTargets[BODY_PART.HEAD];
+            Transform trackingTargetHead = trackingTargets[IK_TARGET.HEAD];
             Vector3 positionToRight = trackingTargetHead.position + trackingTargetHead.right * 10;
             TrackingReferenceObject trackerA = genericTrackersFeet[0];
             TrackingReferenceObject trackerB = genericTrackersFeet[1];
@@ -201,8 +205,8 @@ public class TrackingIKTargetManager : MonoBehaviour
             {
                 //trackingTargetFootRight = trackerA.gameObject.transform;
                 //trackingTargetFootLeft = trackerB.gameObject.transform;
-                trackingTargets.Add(BODY_PART.FOOT_RIGHT, trackerA.gameObject.transform);
-                trackingTargets.Add(BODY_PART.FOOT_LEFT, trackerB.gameObject.transform);
+                trackingTargets.Add(IK_TARGET.FOOT_RIGHT, trackerA.gameObject.transform);
+                trackingTargets.Add(IK_TARGET.FOOT_LEFT, trackerB.gameObject.transform);
 
                 dictSteamVRInputSources.Add((uint)trackerA.trackedObject.index, SteamVR_Input_Sources.RightFoot);
                 dictSteamVRInputSources.Add((uint)trackerB.trackedObject.index, SteamVR_Input_Sources.LeftFoot);
@@ -211,8 +215,8 @@ public class TrackingIKTargetManager : MonoBehaviour
             {
                 //trackingTargetFootRight = trackerB.gameObject.transform;
                 //trackingTargetFootLeft = trackerA.gameObject.transform;
-                trackingTargets.Add(BODY_PART.FOOT_RIGHT, trackerB.gameObject.transform);
-                trackingTargets.Add(BODY_PART.FOOT_LEFT, trackerA.gameObject.transform);
+                trackingTargets.Add(IK_TARGET.FOOT_RIGHT, trackerB.gameObject.transform);
+                trackingTargets.Add(IK_TARGET.FOOT_LEFT, trackerA.gameObject.transform);
 
                 dictSteamVRInputSources.Add((uint)trackerA.trackedObject.index, SteamVR_Input_Sources.LeftFoot);
                 dictSteamVRInputSources.Add((uint)trackerB.trackedObject.index, SteamVR_Input_Sources.RightFoot);
@@ -226,16 +230,16 @@ public class TrackingIKTargetManager : MonoBehaviour
     {
         Debug.Log("SetupIKTargets() - start ...");
 
-        if (trackingTargets.ContainsKey(BODY_PART.HEAD))
+        if (trackingTargets.ContainsKey(IK_TARGET.HEAD))
         {
-            SetupIKTargetHead(trackingTargets[BODY_PART.HEAD]);
-            SetupIKTargetLookAt(trackingTargets[BODY_PART.HEAD]);
+            SetupIKTargetHead(trackingTargets[IK_TARGET.HEAD]);
+            SetupIKTargetLookAt(trackingTargets[IK_TARGET.HEAD]);
         }
-        if (trackingTargets.ContainsKey(BODY_PART.HIP)) SetupIKTargetHip(trackingTargets[BODY_PART.HIP]);
-        if (trackingTargets.ContainsKey(BODY_PART.HAND_LEFT)) SetupIKTargetHandLeft(trackingTargets[BODY_PART.HAND_LEFT]);
-        if (trackingTargets.ContainsKey(BODY_PART.HAND_RIGHT)) SetupIKTargetHandRight(trackingTargets[BODY_PART.HAND_RIGHT]);
-        if (trackingTargets.ContainsKey(BODY_PART.FOOT_LEFT)) SetupIKTargetFootLeft(trackingTargets[BODY_PART.FOOT_LEFT]);
-        if (trackingTargets.ContainsKey(BODY_PART.FOOT_RIGHT)) SetupIKTargetFootRight(trackingTargets[BODY_PART.FOOT_RIGHT]);
+        if (trackingTargets.ContainsKey(IK_TARGET.HIP)) SetupIKTargetHip(trackingTargets[IK_TARGET.HIP]);
+        if (trackingTargets.ContainsKey(IK_TARGET.HAND_LEFT)) SetupIKTargetHandLeft(trackingTargets[IK_TARGET.HAND_LEFT]);
+        if (trackingTargets.ContainsKey(IK_TARGET.HAND_RIGHT)) SetupIKTargetHandRight(trackingTargets[IK_TARGET.HAND_RIGHT]);
+        if (trackingTargets.ContainsKey(IK_TARGET.FOOT_LEFT)) SetupIKTargetFootLeft(trackingTargets[IK_TARGET.FOOT_LEFT]);
+        if (trackingTargets.ContainsKey(IK_TARGET.FOOT_RIGHT)) SetupIKTargetFootRight(trackingTargets[IK_TARGET.FOOT_RIGHT]);
 
         Debug.Log("SetupIKTargets() - ... done");
     }
@@ -246,7 +250,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         ikTargetHead.transform.parent = trackingTarget;
         ikTargetHead.transform.localRotation = new Quaternion();
         ikTargetHead.transform.localPosition = new Vector3(0, 0, hmdOffsetForward);
-        ikTargets.Add(BODY_PART.HEAD, ikTargetHead);
+        ikTargets.Add(IK_TARGET.HEAD, ikTargetHead);
     }
 
     private void SetupIKTargetLookAt(Transform trackingTarget)
@@ -255,7 +259,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         ikTargetLookAt.transform.parent = trackingTarget;
         ikTargetLookAt.transform.localRotation = new Quaternion();
         ikTargetLookAt.transform.localPosition = Vector3.forward;
-        ikTargets.Add(BODY_PART.VIEWING_DIRECTION, ikTargetLookAt);
+        ikTargets.Add(IK_TARGET.VIEWING_DIRECTION, ikTargetLookAt);
     }
 
     private void SetupIKTargetHip(Transform trackingTarget)
@@ -264,7 +268,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         ikTargetHip.transform.parent = trackingTarget;
         //TODO: adjustments for body target?
         ikTargetHip.transform.rotation = Quaternion.FromToRotation(trackingTarget.up, Vector3.up) * trackingTarget.rotation; //TODO: needs to be checked again
-        ikTargets.Add(BODY_PART.HIP, ikTargetHip);
+        ikTargets.Add(IK_TARGET.HIP, ikTargetHip);
     }
 
     // Bachelor Thesis VRHand
@@ -287,7 +291,7 @@ public class TrackingIKTargetManager : MonoBehaviour
             ikTargetLeftHand.transform.localPosition = ikTargetOffsetViveControllerLeft.position;
             ikTargetLeftHand.transform.localRotation = ikTargetOffsetViveControllerLeft.rotation;
         }
-        ikTargets.Add(BODY_PART.HAND_LEFT, ikTargetLeftHand);
+        ikTargets.Add(IK_TARGET.HAND_LEFT, ikTargetLeftHand);
     }
 
     private void SetupIKTargetHandRight(Transform trackingTarget)
@@ -308,7 +312,7 @@ public class TrackingIKTargetManager : MonoBehaviour
             ikTargetRightHand.transform.localPosition = ikTargetOffsetViveControllerRight.position;
             ikTargetRightHand.transform.localRotation = ikTargetOffsetViveControllerRight.rotation;
         }
-        ikTargets.Add(BODY_PART.HAND_RIGHT, ikTargetRightHand);
+        ikTargets.Add(IK_TARGET.HAND_RIGHT, ikTargetRightHand);
     }
 
     private void SetupIKTargetFootLeft(Transform trackingTarget)
@@ -321,7 +325,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         // assume standing on ground when setting up IK targets, then translate IK target down towards the ground
         ikTargetLeftFoot.transform.position = new Vector3(trackingTarget.position.x, feetTargetOffsetAboveGround, trackingTarget.position.z);
         //ikTargetLeftFoot.transform.localPosition = new Vector3(0f, -trackingTarget.position.y, 0f);
-        ikTargets.Add(BODY_PART.FOOT_LEFT, ikTargetLeftFoot);
+        ikTargets.Add(IK_TARGET.FOOT_LEFT, ikTargetLeftFoot);
     }
 
     private void SetupIKTargetFootRight(Transform trackingTarget)
@@ -334,7 +338,82 @@ public class TrackingIKTargetManager : MonoBehaviour
         // assume standing on ground when setting up IK targets, then translate IK target down towards the ground
         ikTargetRightFoot.transform.position = new Vector3(trackingTarget.position.x, feetTargetOffsetAboveGround, trackingTarget.position.z);
         //ikTargetRightFoot.transform.localPosition = new Vector3(0f, -trackingTarget.position.y, 0f);
-        ikTargets.Add(BODY_PART.FOOT_RIGHT, ikTargetRightFoot);
+        ikTargets.Add(IK_TARGET.FOOT_RIGHT, ikTargetRightFoot);
+    }
+
+    private void SetupMockIKTargets()
+    {
+        Debug.LogWarning("IK Target Manager - using MOCK TARGETS");
+
+        if (!ikTargets.ContainsKey(IK_TARGET.HEAD))
+        {
+            GameObject ikTargetHead = new GameObject("MOCK IK Target Head");
+            ikTargetHead.transform.parent = this.transform;
+            ikTargetHead.transform.position = new Vector3(0f, 2f, 0f);
+            ikTargets.Add(IK_TARGET.HEAD, ikTargetHead);
+        }
+
+        if (!ikTargets.ContainsKey(IK_TARGET.VIEWING_DIRECTION))
+        {
+            GameObject ikTargetLookAt = new GameObject("MOCK IK Target Look At");
+            ikTargetLookAt.transform.parent = this.transform;
+            ikTargetLookAt.transform.position = new Vector3(0f, 2f, 0.1f);
+            ikTargets.Add(IK_TARGET.VIEWING_DIRECTION, ikTargetLookAt);
+        }
+
+        if (!ikTargets.ContainsKey(IK_TARGET.HIP))
+        {
+            GameObject ikTargetHip = new GameObject("MOCK IK Target Hip");
+            ikTargetHip.transform.parent = this.transform;
+            ikTargets.Add(IK_TARGET.HIP, ikTargetHip);
+        }
+
+        if (!ikTargets.ContainsKey(IK_TARGET.HAND_LEFT))
+        {
+            GameObject ikTargetLeftHand = new GameObject("MOCK IK Target Left Hand");
+            ikTargetLeftHand.transform.parent = this.transform;
+            ikTargets.Add(IK_TARGET.HAND_LEFT, ikTargetLeftHand);
+        }
+
+        if (!ikTargets.ContainsKey(IK_TARGET.HAND_RIGHT))
+        {
+            GameObject ikTargetRightHand = new GameObject("MOCK IK Target Right Hand");
+            ikTargetRightHand.transform.parent = this.transform;
+            ikTargets.Add(IK_TARGET.HAND_RIGHT, ikTargetRightHand);
+        }
+
+
+        if (!ikTargets.ContainsKey(IK_TARGET.FOOT_LEFT))
+        {
+            GameObject ikTargetLeftFoot = new GameObject("MOCK IK Target Left Foot");
+            ikTargetLeftFoot.transform.parent = this.transform;
+            ikTargets.Add(IK_TARGET.FOOT_LEFT, ikTargetLeftFoot);
+        }
+
+        if (!ikTargets.ContainsKey(IK_TARGET.FOOT_RIGHT))
+        {
+            GameObject ikTargetRightFoot = new GameObject("MOCK IK Target Right Foot");
+            ikTargetRightFoot.transform.parent = this.transform;
+            ikTargets.Add(IK_TARGET.FOOT_RIGHT, ikTargetRightFoot);
+        }
+
+        this.initialized = true;
+    }
+
+    public static GameObject GenerateIKTarget(
+        string name,
+        Transform parent,
+        TrackingIKTargetManager.IK_TARGET part,
+        Vector3 localPos = new Vector3(),
+        Quaternion localRot = new Quaternion())
+    {
+        GameObject ikTarget = new GameObject(name);
+        ikTarget.transform.parent = parent;
+        ikTarget.transform.localRotation = localRot;
+        ikTarget.transform.localPosition = localPos;
+        //AddIndicator(ikTarget.transform);
+
+        return ikTarget;
     }
 
     // DEBUG 
@@ -346,70 +425,11 @@ public class TrackingIKTargetManager : MonoBehaviour
         indicator.transform.parent = parent;
     }
 
-    private void SetupMockIKTargets()
-    {
-        Debug.LogWarning("IK Target Manager - using MOCK TARGETS");
-
-        if (!ikTargets.ContainsKey(BODY_PART.HEAD))
-        {
-            GameObject ikTargetHead = new GameObject("MOCK IK Target Head");
-            ikTargetHead.transform.parent = this.transform;
-            ikTargetHead.transform.position = new Vector3(0f, 2f, 0f);
-            ikTargets.Add(BODY_PART.HEAD, ikTargetHead);
-        }
-
-        if (!ikTargets.ContainsKey(BODY_PART.VIEWING_DIRECTION))
-        {
-            GameObject ikTargetLookAt = new GameObject("MOCK IK Target Look At");
-            ikTargetLookAt.transform.parent = this.transform;
-            ikTargetLookAt.transform.position = new Vector3(0f, 2f, 0.1f);
-            ikTargets.Add(BODY_PART.VIEWING_DIRECTION, ikTargetLookAt);
-        }
-
-        if (!ikTargets.ContainsKey(BODY_PART.HIP))
-        {
-            GameObject ikTargetHip = new GameObject("MOCK IK Target Hip");
-            ikTargetHip.transform.parent = this.transform;
-            ikTargets.Add(BODY_PART.HIP, ikTargetHip);
-        }
-
-        if (!ikTargets.ContainsKey(BODY_PART.HAND_LEFT))
-        {
-            GameObject ikTargetLeftHand = new GameObject("MOCK IK Target Left Hand");
-            ikTargetLeftHand.transform.parent = this.transform;
-            ikTargets.Add(BODY_PART.HAND_LEFT, ikTargetLeftHand);
-        }
-
-        if (!ikTargets.ContainsKey(BODY_PART.HAND_RIGHT))
-        {
-            GameObject ikTargetRightHand = new GameObject("MOCK IK Target Right Hand");
-            ikTargetRightHand.transform.parent = this.transform;
-            ikTargets.Add(BODY_PART.HAND_RIGHT, ikTargetRightHand);
-        }
-
-
-        if (!ikTargets.ContainsKey(BODY_PART.FOOT_LEFT))
-        {
-            GameObject ikTargetLeftFoot = new GameObject("MOCK IK Target Left Foot");
-            ikTargetLeftFoot.transform.parent = this.transform;
-            ikTargets.Add(BODY_PART.FOOT_LEFT, ikTargetLeftFoot);
-        }
-
-        if (!ikTargets.ContainsKey(BODY_PART.FOOT_RIGHT))
-        {
-            GameObject ikTargetRightFoot = new GameObject("MOCK IK Target Right Foot");
-            ikTargetRightFoot.transform.parent = this.transform;
-            ikTargets.Add(BODY_PART.FOOT_RIGHT, ikTargetRightFoot);
-        }
-
-        this.initialized = true;
-    }
-
     #endregion IK_TARGET_SETUP
 
     #region TARGET_GETTERS
 
-    public Transform GetTrackingTargetTransform(BODY_PART target)
+    public Transform GetTrackingTargetTransform(IK_TARGET target)
     {
         if (trackingTargets.ContainsKey(target))
         {
@@ -421,7 +441,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         }
     }
 
-    public SteamVR_TrackedObject GetTrackedObject(BODY_PART target)
+    public SteamVR_TrackedObject GetTrackedObject(IK_TARGET target)
     {
         if (this.debugUseMockIKTargets)
         {
@@ -443,7 +463,7 @@ public class TrackingIKTargetManager : MonoBehaviour
         return dictSteamVRInputSources[trackedObjectIndex];
     }
 
-    public Transform GetIKTargetTransform(BODY_PART target)
+    public Transform GetIKTargetTransform(IK_TARGET target)
     {
         if (ikTargets.ContainsKey(target))
         {

@@ -13,6 +13,9 @@ public enum JOINT_TYPE {
 //[RequireComponent(typeof(BoneMeshContainer))]
 public class AvatarPhysicsManager : MonoBehaviour
 {
+    public delegate void OnInitializedAction();
+    public static event OnInitializedAction OnInitialized;
+
     const string PREFIX_GEOMETRY_SURFACES = "Alpha_Surface_";
     const string PREFIX_GEOMETRY_JOINTS = "Alpha_Joints_";
     const string PREFIX_ARMATURE = "mixamorig_";
@@ -55,7 +58,7 @@ public class AvatarPhysicsManager : MonoBehaviour
 
     //The bones of the character that physiscs should be applied to
     Dictionary<HumanBodyBones, GameObject> mapBone2GameObject = new Dictionary<HumanBodyBones, GameObject>();
-    //Dictionary<HumanBodyBones, Transform> mapBone2TargetTransform = new Dictionary<HumanBodyBones, Transform>();
+    Dictionary<HumanBodyBones, Transform> mapBone2TargetTransform = new Dictionary<HumanBodyBones, Transform>();
     Dictionary<HumanBodyBones, Vector3> mapBone2TargetPosition = new Dictionary<HumanBodyBones, Vector3>();
     Dictionary<HumanBodyBones, Quaternion> mapBone2TargetRotation = new Dictionary<HumanBodyBones, Quaternion>();
     //Dictionary<HumanBodyBones, Quaternion> orientationPerBoneRemoteAvatarAtStart = new Dictionary<HumanBodyBones, Quaternion>();
@@ -368,6 +371,28 @@ public class AvatarPhysicsManager : MonoBehaviour
         }
     }
 
+    /**
+    * Since our armature is based on joint transforms, if we want to place physical bones + body geometry correctly
+    * we need to find the transforms indicating the centered poses in between the joints.
+    */
+
+    //TODO
+    void SetupBoneTargetTransforms()
+    {
+        /*foreach (HumanBodyBones bone in System.Enum.GetValues(typeof(HumanBodyBones)))
+        {
+            //LastBone is not mapped to a bodypart, we need to skip it.
+            if (bone != HumanBodyBones.LastBone)
+            {
+                Transform armatureBoneTransform = animator.GetBoneTransform(bone);
+                if (armatureBoneTransform != null)
+                {
+                    SetTargetTransformFromArmatureJoint(bone, poseTrackingAnimator.GetBoneTransform(bone));
+                }
+            }
+        }*/
+    }
+
     void SetTargetTransformFromArmatureJoint(HumanBodyBones bone, Transform armatureJointTransform)
     {
         //Debug.Log("#######");
@@ -382,11 +407,16 @@ public class AvatarPhysicsManager : MonoBehaviour
         targetPosition.Set(armaturePosition.x, armaturePosition.y, armaturePosition.z);
         if (bone != HumanBodyBones.UpperChest)
         {
+            int armatureChildCount = 0;
             foreach (Transform child in armatureJointTransform)
             {
-                targetPosition += child.position;
+                if (child.name.Contains(PREFIX_ARMATURE))
+                {
+                    targetPosition += child.position;
+                    armatureChildCount++;
+                }
             }
-            targetPosition /= armatureJointTransform.childCount + 1;
+            targetPosition /= armatureChildCount + 1;
         }
         
         //Debug.Log(targetPosition);
