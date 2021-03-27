@@ -32,7 +32,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
         if (usePseudoTopicData)
         {
-            foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+            foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
                 GameObject ikTargetObject = new GameObject("IK Target TopicData " + ikTarget.ToString());
                 ikTargets.Add(ikTarget, ikTargetObject.transform);
@@ -62,7 +62,7 @@ public class UserAvatarIKControl : MonoBehaviour
         ikTargetRightHand = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HAND_RIGHT);
         ikTargetLeftFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_LEFT);
         ikTargetRightFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_RIGHT);*/
-        foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
             ikTargets.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
         }
@@ -83,7 +83,7 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             return;
         }
-        
+
         Transform ikTargetHip = ikTargets[IK_TARGET.HIP];
         Transform ikTargetLookAt = ikTargets[IK_TARGET.VIEWING_DIRECTION];
         Transform ikTargetHead = ikTargets[IK_TARGET.HEAD];
@@ -247,12 +247,12 @@ public class UserAvatarIKControl : MonoBehaviour
 
     private void UpdateFromPseudoTopicData()
     {
-        foreach(IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
             //Debug.Log(ikTargets[ikTarget]);
             //Debug.Log(topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget)));
-            ikTargets[ikTarget].position = topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
-            ikTargets[ikTarget].rotation = topicData.GetQuaternion(PseudoTopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
+            ikTargets[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
+            ikTargets[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
         }
     }
 }

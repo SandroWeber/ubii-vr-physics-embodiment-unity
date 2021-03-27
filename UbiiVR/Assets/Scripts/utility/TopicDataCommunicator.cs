@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Google.Protobuf.Collections;
 
 using static TrackingIKTargetManager;
 
@@ -75,7 +76,8 @@ public class TopicDataCommunicator : MonoBehaviour
 
     private void PublishIKTargets()
     {
-        List<Ubii.TopicData.TopicDataRecord> recordList = new List<Ubii.TopicData.TopicDataRecord>();
+        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData();
+        //Ubii.TopicData.TopicDataRecordList recordList = new Ubii.TopicData.TopicDataRecordList();
 
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
@@ -88,19 +90,19 @@ public class TopicDataCommunicator : MonoBehaviour
             { }
             else if (animationManager != null)
             {
-                Transform ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
+                ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
             }
 
-            recordList.Add(new Ubii.TopicData.TopicDataRecord
+            topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
             {
-                Topic = topicTestPublishSubscribe,
+                Topic = topic,
                 Pose3D = new Ubii.DataStructure.Pose3D
                 {
                     Position = { X = ikTargetTransform.position.x, Y = ikTargetTransform.position.y, Z = ikTargetTransform.position.z },
-                    Quaternion = { 
-                        X = ikTargetTransform.rotation.x, 
-                        Y = ikTargetTransform.rotation.y, 
-                        Z = ikTargetTransform.rotation.z, 
+                    Quaternion = {
+                        X = ikTargetTransform.rotation.x,
+                        Y = ikTargetTransform.rotation.y,
+                        Z = ikTargetTransform.rotation.z,
                         W = ikTargetTransform.rotation.w }
                 }
             });
@@ -135,6 +137,6 @@ public class TopicDataCommunicator : MonoBehaviour
             }
         }
 
-        ubiiClient.Publish(new Ubii.TopicData.TopicData { TopicDataRecordList = recordList });
+        ubiiClient.Publish(topicData);
     }
 }
