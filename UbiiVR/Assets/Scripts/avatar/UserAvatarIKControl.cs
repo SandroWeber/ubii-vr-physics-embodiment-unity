@@ -9,13 +9,15 @@ using static TrackingIKTargetManager;
 
 public class UserAvatarIKControl : MonoBehaviour
 {
-    [SerializeField] private bool ikActive = true;
-    [SerializeField] private bool usePseudoTopicData = true;
-    [SerializeField] private TrackingIKTargetManager trackingIKTargetManager;
-    [SerializeField] private TrackingHandManager trackingHandManager;
-    [SerializeField] private Pose manualBodyOffset;
+    public bool ikActive = true;
+    public bool useTopicData = true;
+    public UbiiClient ubiiClient = null;
+    public TopicDataCommunicator topicDataCommunicator = null;
+    public TrackingIKTargetManager trackingIKTargetManager;
+    public TrackingHandManager trackingHandManager;
+    public Pose manualBodyOffset;
     [Tooltip("If we need to infer hip position from head and feet targets, adjust the ratio to place it along distance from feet to head.")]
-    [SerializeField] private float inferredHipPosFeet2HeadDistanceRatio = 0.575f;
+    public float inferredHipPosFeet2HeadDistanceRatio = 0.575f;
 
     protected Animator animator;
 
@@ -30,12 +32,19 @@ public class UserAvatarIKControl : MonoBehaviour
         animator = GetComponent<Animator>();
         topicData = PseudoTopicData.Instance;
 
-        if (usePseudoTopicData)
+        if (useTopicData && ubiiClient != null && topicDataCommunicator != null)
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
                 GameObject ikTargetObject = new GameObject("IK Target TopicData " + ikTarget.ToString());
                 ikTargets.Add(ikTarget, ikTargetObject.transform);
+                
+                ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (record) => {
+                    Ubii.DataStructure.Vector3 pos = record.Pose3D.Position;
+                    Ubii.DataStructure.Quaternion rot = record.Pose3D.Quaternion;
+                    ikTargetObject.transform.position = new Vector3((float)pos.X, (float)pos.Y, (float)pos.Z);
+                    ikTargetObject.transform.rotation = new Quaternion((float)rot.X, (float)rot.Y, (float)rot.Z, (float)rot.W);
+                });
             }
             initialized = true;
         }
@@ -53,7 +62,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
     void InitDirectIKTargets()
     {
-        if (usePseudoTopicData || !ikActive) return;
+        if (useTopicData || !ikActive) return;
 
         /*ikTargetHead = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HEAD);
         ikTargetLookAt = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.VIEWING_DIRECTION);
@@ -71,7 +80,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
     void Update()
     {
-        if (usePseudoTopicData && initialized)
+        if (useTopicData && initialized)
         {
             UpdateFromPseudoTopicData();
         }
@@ -251,8 +260,14 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             //Debug.Log(ikTargets[ikTarget]);
             //Debug.Log(topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget)));
-            ikTargets[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
-            ikTargets[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
+            try {
+                ikTargets[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
+                ikTargets[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(exception.ToString());
+            }
         }
     }
 }

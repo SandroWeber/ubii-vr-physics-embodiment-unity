@@ -8,9 +8,9 @@ using static TrackingIKTargetManager;
 
 public class TopicDataCommunicator : MonoBehaviour
 {
-    static string TOPIC_PREFIX_IK_TARGET_POSITION = "/topic/avatar/ik_target/pos";
-    static string TOPIC_PREFIX_IK_TARGET_ROTATION = "/topic/avatar/ik_target/rot";
-    static string TOPIC_PREFIX_IK_TARGET_POSE = "/topic/avatar/ik_target/pose";
+    static string TOPIC_PREFIX_IK_TARGET_POSITION = "/avatar/ik_target/pos";
+    static string TOPIC_PREFIX_IK_TARGET_ROTATION = "/avatar/ik_target/rot";
+    static string TOPIC_PREFIX_IK_TARGET_POSE = "/avatar/ik_target/pose";
 
     public bool usePseudoTopicData = false;
     public TrackingIKTargetManager ikTargetManager = null;
@@ -18,6 +18,7 @@ public class TopicDataCommunicator : MonoBehaviour
 
     private PseudoTopicData pseudoTopicdata = null;
     private UbiiClient ubiiClient = null;
+    private bool running = false;
 
     // Start is called before the first frame update
     void Start()
@@ -26,8 +27,89 @@ public class TopicDataCommunicator : MonoBehaviour
         pseudoTopicdata = PseudoTopicData.Instance;
     }
 
+    void OnEnable()
+    {
+        UbiiClient.OnInitialized += OnUbiiClientInit;
+    }
+
+    void OnDisable()
+    {
+        UbiiClient.OnInitialized -= OnUbiiClientInit;
+    }
+
+    void OnUbiiClientInit()
+    {
+        running = true;
+    }
+
     // Update is called once per frame
     void Update()
+    {
+        if (running) PublishIKTargets();
+    }
+
+    public static string GetIKTargetBodyPartString(IK_TARGET ikTarget)
+    {
+        return ikTarget.ToString().ToLower();
+    }
+
+    public static string GetTopicIKTargetPosition(IK_TARGET ikTarget)
+    {
+        return TOPIC_PREFIX_IK_TARGET_POSITION + "/" + GetIKTargetBodyPartString(ikTarget);
+    }
+
+    public static string GetTopicIKTargetRotation(IK_TARGET ikTarget)
+    {
+        return TOPIC_PREFIX_IK_TARGET_ROTATION + "/" + GetIKTargetBodyPartString(ikTarget);
+    }
+
+    public string GetTopicIKTargetPose(IK_TARGET ikTarget)
+    {
+        return "/" + ubiiClient.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
+    }
+
+    private void PublishIKTargets()
+    {
+        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { 
+            TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList()
+        };
+
+        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        {
+            string topic = GetTopicIKTargetPose(ikTarget);
+
+            Transform ikTargetTransform = null;
+            if (ikTargetManager.IsReady())
+            {
+                ikTargetTransform = ikTargetManager.GetIKTargetTransform(ikTarget);
+            }
+            else if (animationManager != null)
+            {
+                ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
+            }
+            
+            topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
+            {
+                Topic = topic,
+                Pose3D = new Ubii.DataStructure.Pose3D
+                {
+                    Position = new Ubii.DataStructure.Vector3 { 
+                        X = ikTargetTransform.position.x,
+                        Y = ikTargetTransform.position.y,
+                        Z = ikTargetTransform.position.z },
+                    Quaternion = new Ubii.DataStructure.Quaternion {
+                        X = ikTargetTransform.rotation.x,
+                        Y = ikTargetTransform.rotation.y,
+                        Z = ikTargetTransform.rotation.z,
+                        W = ikTargetTransform.rotation.w }
+                }
+            });
+        }
+
+        ubiiClient.Publish(topicData);
+    }
+
+    private void PublishPseudoTopicData()
     {
         //Debug.Log("PseudoTopicDataCommunicator.Update()");
         if (ikTargetManager.IsReady())
@@ -57,86 +139,5 @@ public class TopicDataCommunicator : MonoBehaviour
                 pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
             }
         }
-    }
-
-    public static string GetIKTargetBodyPartString(IK_TARGET ikTarget)
-    {
-        return ikTarget.ToString().ToLower();
-    }
-
-    public static string GetTopicIKTargetPosition(IK_TARGET ikTarget)
-    {
-        return TOPIC_PREFIX_IK_TARGET_POSITION + "/" + GetIKTargetBodyPartString(ikTarget);
-    }
-
-    public static string GetTopicIKTargetRotation(IK_TARGET ikTarget)
-    {
-        return TOPIC_PREFIX_IK_TARGET_ROTATION + "/" + GetIKTargetBodyPartString(ikTarget);
-    }
-
-    private void PublishIKTargets()
-    {
-        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData();
-        //Ubii.TopicData.TopicDataRecordList recordList = new Ubii.TopicData.TopicDataRecordList();
-
-        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
-        {
-            string partName = GetIKTargetBodyPartString(ikTarget);
-            string topic = TOPIC_PREFIX_IK_TARGET_POSE + "/" + partName;
-            //Debug.Log(topic);
-
-            Transform ikTargetTransform = null;
-            if (ikTargetManager.IsReady())
-            { }
-            else if (animationManager != null)
-            {
-                ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
-            }
-
-            topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
-            {
-                Topic = topic,
-                Pose3D = new Ubii.DataStructure.Pose3D
-                {
-                    Position = { X = ikTargetTransform.position.x, Y = ikTargetTransform.position.y, Z = ikTargetTransform.position.z },
-                    Quaternion = {
-                        X = ikTargetTransform.rotation.x,
-                        Y = ikTargetTransform.rotation.y,
-                        Z = ikTargetTransform.rotation.z,
-                        W = ikTargetTransform.rotation.w }
-                }
-            });
-
-        }
-
-        if (ikTargetManager.IsReady())
-        {
-            foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
-            {
-                string partName = GetIKTargetBodyPartString(ikTarget);
-                string topicPos = TOPIC_PREFIX_IK_TARGET_POSITION + "/" + partName;
-                //Debug.Log(topicPos);
-                string topicRot = TOPIC_PREFIX_IK_TARGET_ROTATION + "/" + partName;
-                //Debug.Log(topicRot);
-                Transform ikTargetTransform = ikTargetManager.GetIKTargetTransform(ikTarget);
-                pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
-                pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
-            }
-        }
-        else if (animationManager != null)
-        {
-            foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
-            {
-                string topicPos = GetTopicIKTargetPosition(ikTarget);
-                //Debug.Log(topicPos);
-                string topicRot = GetTopicIKTargetRotation(ikTarget);
-                //Debug.Log(topicRot);
-                Transform ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
-                pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
-                pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
-            }
-        }
-
-        ubiiClient.Publish(topicData);
     }
 }
