@@ -23,6 +23,8 @@ public class TopicDataCommunicator : MonoBehaviour
     private UbiiClient ubiiClient = null;
     private bool running = false;
     private IEnumerator publishCoroutine = null;
+    private float tLastPublish = 0;
+    private float secondsBetweenPublish = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -49,10 +51,12 @@ public class TopicDataCommunicator : MonoBehaviour
     void OnUbiiClientInitialized()
     {
         running = true;
-        float waitTimeSeconds = 1f / (float)publishFrequency;
+        secondsBetweenPublish = 1f / (float)publishFrequency;
+
+        //TODO: make ubii client networking threaded & thread-safe
         //publishCoroutine = PublishIKTargetsCoroutine(waitTimeSeconds);
         //StartCoroutine(publishCoroutine);
-        Task.Run(() => {
+        /*Task.Run(() => {
             while (running)
             {
                 PublishTopicData();
@@ -60,7 +64,22 @@ public class TopicDataCommunicator : MonoBehaviour
                 Thread.Sleep((int)(waitTimeSeconds * 1000));
                 Debug.Log("running: " + running);
             }
-        });
+        });*/
+        tLastPublish = Time.time;
+    }
+
+    void Update()
+    {
+        if (running)
+        {
+            //TODO: make ubii client networking threaded & thread-safe
+            float tNow = Time.time;
+            if (tNow >= tLastPublish + secondsBetweenPublish)
+            {
+                PublishTopicData();
+                tLastPublish = tNow;
+            }
+        }
     }
 
     public static string GetIKTargetBodyPartString(IK_TARGET ikTarget)
@@ -130,7 +149,7 @@ public class TopicDataCommunicator : MonoBehaviour
             });
         }
 
-        //ubiiClient.Publish(topicData);
+        ubiiClient.Publish(topicData);
     }
 
     private void PublishPseudoTopicData()

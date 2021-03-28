@@ -58,10 +58,10 @@ public class UserAvatarIKControl : MonoBehaviour
                 mapIKTargets.Add(ikTarget, ikTargetObject.transform);
 
                 mapIKTarget2Record.Add(ikTarget, null);
-                ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (record) => {
+                /*ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (record) => {
                     Debug.Log("Subscribe record for " + ikTarget);
                     mapIKTarget2Record[ikTarget] = record;
-                });
+                });*/
             }
             initialized = true;
         }
