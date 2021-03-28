@@ -6,8 +6,13 @@ using Ubii.TopicData;
 
 using static TrackingIKTargetManager;
 
-[RequireComponent(typeof(Animator))]
 
+struct UbiiPose3D {
+    Vector3 vector3;
+    Quaternion rotation;
+}
+
+[RequireComponent(typeof(Animator))]
 public class UserAvatarIKControl : MonoBehaviour
 {
     public bool ikActive = true;
@@ -24,7 +29,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
     private Dictionary<IK_TARGET, Transform> mapIKTargets = new Dictionary<IK_TARGET, Transform>();
     //TODO: pull directly from client side topicdata during update once implemented?
-    private Dictionary<IK_TARGET, TopicDataRecord> mapIKTarget2Record = new Dictionary<IK_TARGET, TopicDataRecord>();
+    private Dictionary<IK_TARGET, Ubii.DataStructure.Pose3D> mapIKTarget2Record = new Dictionary<IK_TARGET, Ubii.DataStructure.Pose3D>();
     private Queue<Vector3> groundCenterTrajectory = new Queue<Vector3>();
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
@@ -54,13 +59,13 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
-                GameObject ikTargetObject = new GameObject("IK Target TopicData " + ikTarget.ToString());
+                GameObject ikTargetObject = new GameObject("IK Control Target TopicData " + ikTarget.ToString());
                 mapIKTargets.Add(ikTarget, ikTargetObject.transform);
 
                 mapIKTarget2Record.Add(ikTarget, null);
                 /*ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (record) => {
                     Debug.Log("Subscribe record for " + ikTarget);
-                    mapIKTarget2Record[ikTarget] = record;
+                    mapIKTarget2Record[ikTarget] = record.Pose3D.Clone();
                 });*/
             }
             initialized = true;
@@ -92,13 +97,13 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
-                TopicDataRecord record = mapIKTarget2Record[ikTarget];
+                Ubii.DataStructure.Pose3D pose = mapIKTarget2Record[ikTarget];
                 Transform ikTargetTransform = mapIKTargets[ikTarget];
                 //Debug.Log(record);
 
-                if (record != null) {
-                    Ubii.DataStructure.Vector3 pos = record.Pose3D.Position;
-                    Ubii.DataStructure.Quaternion rot = record.Pose3D.Quaternion;
+                if (pose != null) {
+                    Ubii.DataStructure.Vector3 pos = pose.Position;
+                    Ubii.DataStructure.Quaternion rot = pose.Quaternion;
                     ikTargetTransform.position = new Vector3((float)pos.X, (float)pos.Y, (float)pos.Z);
                     ikTargetTransform.rotation = new Quaternion((float)rot.X, (float)rot.Y, (float)rot.Z, (float)rot.W);
                 }
