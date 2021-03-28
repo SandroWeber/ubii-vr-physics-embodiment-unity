@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Google.Protobuf.Collections;
 
 using static TrackingIKTargetManager;
@@ -13,12 +15,14 @@ public class TopicDataCommunicator : MonoBehaviour
     static string TOPIC_PREFIX_IK_TARGET_POSE = "/avatar/ik_target/pose";
 
     public bool usePseudoTopicData = false;
+    public int publishFrequency = 10;
     public TrackingIKTargetManager ikTargetManager = null;
     public AnimationManager animationManager = null;
 
     private PseudoTopicData pseudoTopicdata = null;
     private UbiiClient ubiiClient = null;
     private bool running = false;
+    private IEnumerator publishCoroutine = null;
 
     // Start is called before the first frame update
     void Start()
@@ -29,23 +33,34 @@ public class TopicDataCommunicator : MonoBehaviour
 
     void OnEnable()
     {
-        UbiiClient.OnInitialized += OnUbiiClientInit;
+        UbiiClient.OnInitialized += OnUbiiClientInitialized;
     }
 
     void OnDisable()
     {
-        UbiiClient.OnInitialized -= OnUbiiClientInit;
+        UbiiClient.OnInitialized -= OnUbiiClientInitialized;
+        if (publishCoroutine != null)
+        {
+            StopCoroutine(publishCoroutine);
+        }
+        running = false;
     }
 
-    void OnUbiiClientInit()
+    void OnUbiiClientInitialized()
     {
         running = true;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (running) PublishIKTargets();
+        float waitTimeSeconds = 1f / (float)publishFrequency;
+        //publishCoroutine = PublishIKTargetsCoroutine(waitTimeSeconds);
+        //StartCoroutine(publishCoroutine);
+        Task.Run(() => {
+            while (running)
+            {
+                PublishTopicData();
+    
+                Thread.Sleep((int)(waitTimeSeconds * 1000));
+                Debug.Log("running: " + running);
+            }
+        });
     }
 
     public static string GetIKTargetBodyPartString(IK_TARGET ikTarget)
@@ -68,11 +83,20 @@ public class TopicDataCommunicator : MonoBehaviour
         return "/" + ubiiClient.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
     }
 
-    private void PublishIKTargets()
+    private IEnumerator PublishIKTargetsCoroutine(float waitTime)
     {
-        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { 
-            TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList()
-        };
+        while (running)
+        {
+            PublishTopicData();
+
+            yield return new WaitForSeconds(waitTime);
+            Debug.Log("running: " + running);
+        }
+    }
+
+    private void PublishTopicData()
+    {
+        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
 
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
@@ -85,7 +109,7 @@ public class TopicDataCommunicator : MonoBehaviour
             }
             else if (animationManager != null)
             {
-                ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
+                ikTargetTransform = animationManager.GetEmulatedIKTargetTransform(ikTarget);
             }
             
             topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
@@ -106,7 +130,7 @@ public class TopicDataCommunicator : MonoBehaviour
             });
         }
 
-        ubiiClient.Publish(topicData);
+        //ubiiClient.Publish(topicData);
     }
 
     private void PublishPseudoTopicData()
@@ -134,7 +158,7 @@ public class TopicDataCommunicator : MonoBehaviour
                 //Debug.Log(topicPos);
                 string topicRot = GetTopicIKTargetRotation(ikTarget);
                 //Debug.Log(topicRot);
-                Transform ikTargetTransform = animationManager.GetPseudoIKTargetTransform(ikTarget);
+                Transform ikTargetTransform = animationManager.GetEmulatedIKTargetTransform(ikTarget);
                 pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
                 pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
             }

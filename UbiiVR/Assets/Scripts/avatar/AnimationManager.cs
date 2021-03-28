@@ -12,7 +12,7 @@ public class AnimationManager : MonoBehaviour
     public bool playAnimationLoop = false;
 
     private bool lastStatePlayAnimationLoop = false;
-    private Dictionary<IK_TARGET, GameObject> pseudoIKTargets = new Dictionary<IK_TARGET, GameObject>();
+    private Dictionary<IK_TARGET, GameObject> emulatedIKTargets = new Dictionary<IK_TARGET, GameObject>();
 
     void Start()
     {
@@ -23,7 +23,7 @@ public class AnimationManager : MonoBehaviour
 
         if (animator != null)
         {
-            SetupPseudoIKTargets();
+            SetupEmulatedIKTargets();
         }
     }
 
@@ -46,11 +46,11 @@ public class AnimationManager : MonoBehaviour
         lastStatePlayAnimationLoop = playAnimationLoop;
     }
 
-    public Transform GetPseudoIKTargetTransform(IK_TARGET bodyPart)
+    public Transform GetEmulatedIKTargetTransform(IK_TARGET bodyPart)
     {
-        if (pseudoIKTargets.ContainsKey(bodyPart))
+        if (emulatedIKTargets.ContainsKey(bodyPart))
         {
-            return pseudoIKTargets[bodyPart].transform;
+            return emulatedIKTargets[bodyPart].transform;
         }
         else
         {
@@ -58,36 +58,36 @@ public class AnimationManager : MonoBehaviour
         }
     }
 
-    private void SetupPseudoIKTargets()
+    private void SetupEmulatedIKTargets()
     {
         Transform transformHead = animator.GetBoneTransform(HumanBodyBones.Head);
-        pseudoIKTargets.Add(IK_TARGET.HEAD,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Head", transformHead, IK_TARGET.HEAD));
-        pseudoIKTargets.Add(IK_TARGET.VIEWING_DIRECTION,
+        emulatedIKTargets.Add(IK_TARGET.HEAD,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Head", transformHead, IK_TARGET.HEAD));
+        emulatedIKTargets.Add(IK_TARGET.VIEWING_DIRECTION,
             TrackingIKTargetManager.GenerateIKTarget(
-                "Animation Pseudo IK Target Look At", 
+                "Animation Emulated IK Target Look At", 
                 transformHead, 
                 IK_TARGET.VIEWING_DIRECTION,
                 Vector3.forward));
 
         Transform transformHips = animator.GetBoneTransform(HumanBodyBones.Hips);
-        pseudoIKTargets.Add(IK_TARGET.HIP,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Hips", transformHips, IK_TARGET.HIP));
+        emulatedIKTargets.Add(IK_TARGET.HIP,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Hips", transformHips, IK_TARGET.HIP));
 
         Transform transformLeftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
-        pseudoIKTargets.Add(IK_TARGET.HAND_LEFT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Left Hand", transformLeftHand, IK_TARGET.HAND_LEFT));
+        emulatedIKTargets.Add(IK_TARGET.HAND_LEFT,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Left Hand", transformLeftHand, IK_TARGET.HAND_LEFT));
 
         Transform transformRightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
-        pseudoIKTargets.Add(IK_TARGET.HAND_RIGHT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Right Hand", transformRightHand, IK_TARGET.HAND_RIGHT));
+        emulatedIKTargets.Add(IK_TARGET.HAND_RIGHT,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Right Hand", transformRightHand, IK_TARGET.HAND_RIGHT));
 
         Transform transformLeftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-        pseudoIKTargets.Add(IK_TARGET.FOOT_LEFT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Left Foot", transformLeftFoot, IK_TARGET.FOOT_LEFT));
+        emulatedIKTargets.Add(IK_TARGET.FOOT_LEFT,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Left Foot", transformLeftFoot, IK_TARGET.FOOT_LEFT));
 
         Transform transformRightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-        pseudoIKTargets.Add(IK_TARGET.FOOT_RIGHT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Pseudo IK Target Right Foot", transformRightFoot, IK_TARGET.FOOT_RIGHT));
+        emulatedIKTargets.Add(IK_TARGET.FOOT_RIGHT,
+            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Right Foot", transformRightFoot, IK_TARGET.FOOT_RIGHT));
     }
 }
