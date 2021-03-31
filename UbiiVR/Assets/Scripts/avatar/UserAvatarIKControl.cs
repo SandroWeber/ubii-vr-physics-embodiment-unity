@@ -93,13 +93,6 @@ public class UserAvatarIKControl : MonoBehaviour
     {
         if (useTopicData || !ikActive) return;
 
-        /*ikTargetHead = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HEAD);
-        ikTargetLookAt = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.VIEWING_DIRECTION);
-        ikTargetHip = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HIP);
-        ikTargetLeftHand = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HAND_LEFT);
-        ikTargetRightHand = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.HAND_RIGHT);
-        ikTargetLeftFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_LEFT);
-        ikTargetRightFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_RIGHT);*/
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
             mapIKTargetTransforms.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
@@ -116,14 +109,10 @@ public class UserAvatarIKControl : MonoBehaviour
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
                 Transform ikTargetTransform = mapIKTargetTransforms[ikTarget];
 
-                //Debug.Log(ikTarget);
                 Vector3 pos = pose.position;
                 Quaternion rot = pose.rotation;
-                //Debug.Log(pos);
-                //Debug.Log(rot);
                 ikTargetTransform.position = new Vector3((float)pos.x, (float)pos.y, (float)pos.z);
                 ikTargetTransform.rotation = new Quaternion((float)rot.x, (float)rot.y, (float)rot.z, (float)rot.w);
-                //Debug.Log(ikTargetTransform);
             }
             //UpdateFromPseudoTopicData();
         }
@@ -131,20 +120,37 @@ public class UserAvatarIKControl : MonoBehaviour
 
     void OnAnimatorIK()
     {
-        if (!initialized)
-        {
-            return;
-        }
+        if (!initialized) return;
 
-        Transform ikTargetHip = mapIKTargetTransforms[IK_TARGET.HIP];
         Transform ikTargetLookAt = mapIKTargetTransforms[IK_TARGET.VIEWING_DIRECTION];
-        Transform ikTargetHead = mapIKTargetTransforms[IK_TARGET.HEAD];
         Transform ikTargetLeftHand = mapIKTargetTransforms[IK_TARGET.HAND_LEFT];
         Transform ikTargetRightHand = mapIKTargetTransforms[IK_TARGET.HAND_RIGHT];
         Transform ikTargetLeftFoot = mapIKTargetTransforms[IK_TARGET.FOOT_LEFT];
         Transform ikTargetRightFoot = mapIKTargetTransforms[IK_TARGET.FOOT_RIGHT];
 
         // position body
+        SetAnimatorBodyPose();
+
+        if (ikTargetLookAt != null)
+        {
+            animator.SetLookAtWeight(1);
+            animator.SetLookAtPosition(ikTargetLookAt.position);
+        }
+        if (ikTargetLeftHand != null) SetAnimatorIKPose(AvatarIKGoal.LeftHand, ikTargetLeftHand);
+        if (ikTargetRightHand != null) SetAnimatorIKPose(AvatarIKGoal.RightHand, ikTargetRightHand);
+        if (ikTargetLeftFoot != null) SetAnimatorIKPose(AvatarIKGoal.LeftFoot, ikTargetLeftFoot);
+        if (ikTargetRightFoot != null) SetAnimatorIKPose(AvatarIKGoal.RightFoot, ikTargetRightFoot);
+    }
+
+    private void SetAnimatorBodyPose()
+    {
+        Transform ikTargetHip = mapIKTargetTransforms[IK_TARGET.HIP];
+        Transform ikTargetHead = mapIKTargetTransforms[IK_TARGET.HEAD];
+        Transform ikTargetLeftHand = mapIKTargetTransforms[IK_TARGET.HAND_LEFT];
+        Transform ikTargetRightHand = mapIKTargetTransforms[IK_TARGET.HAND_RIGHT];
+        Transform ikTargetLeftFoot = mapIKTargetTransforms[IK_TARGET.FOOT_LEFT];
+        Transform ikTargetRightFoot = mapIKTargetTransforms[IK_TARGET.FOOT_RIGHT];
+
         if (ikTargetHip != null)
         {
             animator.bodyPosition = ikTargetHip.position + manualBodyOffset.position;
@@ -235,48 +241,15 @@ public class UserAvatarIKControl : MonoBehaviour
             }
             this.transform.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(forward, Vector3.up), Vector3.up);
         }
+    }
 
-        if (ikTargetLookAt != null)
-        {
-            animator.SetLookAtWeight(1);
-            animator.SetLookAtPosition(ikTargetLookAt.position);
-        }
+    private void SetAnimatorIKPose(AvatarIKGoal ikGoal, Transform targetTransform)
+    {
+        animator.SetIKPositionWeight(ikGoal, 1);
+        animator.SetIKRotationWeight(ikGoal, 1);
 
-        if (ikTargetRightHand != null)
-        {
-            animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 1);
-            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 1);
-            animator.SetIKPosition(AvatarIKGoal.RightHand, ikTargetRightHand.position);
-            animator.SetIKRotation(AvatarIKGoal.RightHand, ikTargetRightHand.rotation);
-        }
-
-        if (ikTargetLeftHand != null)
-        {
-            animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1);
-            animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 1);
-            animator.SetIKPosition(AvatarIKGoal.LeftHand, ikTargetLeftHand.position);
-            animator.SetIKRotation(AvatarIKGoal.LeftHand, ikTargetLeftHand.rotation);
-        }
-
-        if (ikTargetRightFoot != null)
-        {
-            //rightFootTarget.up = Vector3.up;
-            animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1);
-            animator.SetIKRotationWeight(AvatarIKGoal.RightFoot, 1);
-            animator.SetIKPosition(AvatarIKGoal.RightFoot, ikTargetRightFoot.position);
-            //Quaternion rightQuaternion = Quaternion.Euler(rightFootTarget.eulerAngles);
-            animator.SetIKRotation(AvatarIKGoal.RightFoot, /*rightQuaternion*/ikTargetRightFoot.rotation);
-        }
-
-        if (ikTargetLeftFoot != null)
-        {
-            //leftFootTarget.up = Vector3.up;
-            animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 1);
-            animator.SetIKRotationWeight(AvatarIKGoal.LeftFoot, 1);
-            animator.SetIKPosition(AvatarIKGoal.LeftFoot, ikTargetLeftFoot.position);
-            //Quaternion leftQuaternion = Quaternion.Euler(leftFootTarget.eulerAngles);
-            animator.SetIKRotation(AvatarIKGoal.LeftFoot, /*leftQuaternion*/ikTargetLeftFoot.rotation);
-        }
+        animator.SetIKPosition(ikGoal, targetTransform.position);
+        animator.SetIKRotation(ikGoal, targetTransform.rotation);
     }
 
     private void LateUpdate()
@@ -301,8 +274,6 @@ public class UserAvatarIKControl : MonoBehaviour
     {
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            //Debug.Log(ikTargets[ikTarget]);
-            //Debug.Log(topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget)));
             try {
                 mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
                 mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));

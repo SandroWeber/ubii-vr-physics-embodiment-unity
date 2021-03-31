@@ -59,7 +59,7 @@ public class TopicDataCommunicator : MonoBehaviour
         /*Task.Run(() => {
             while (running)
             {
-                PublishTopicData();
+                PublishTopicDataIKTargets();
     
                 Thread.Sleep((int)(waitTimeSeconds * 1000));
                 Debug.Log("running: " + running);
@@ -76,7 +76,7 @@ public class TopicDataCommunicator : MonoBehaviour
             float tNow = Time.time;
             if (tNow >= tLastPublish + secondsBetweenPublish)
             {
-                PublishTopicData();
+                PublishTopicDataIKTargets();
                 tLastPublish = tNow;
             }
         }
@@ -106,14 +106,14 @@ public class TopicDataCommunicator : MonoBehaviour
     {
         while (running)
         {
-            PublishTopicData();
+            PublishTopicDataIKTargets();
 
             yield return new WaitForSeconds(waitTime);
             Debug.Log("running: " + running);
         }
     }
 
-    private void PublishTopicData()
+    private void PublishTopicDataIKTargets()
     {
         Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
 
