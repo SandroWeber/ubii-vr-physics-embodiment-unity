@@ -63,7 +63,7 @@ public class TestObjectMovement : MonoBehaviour
 
     public void OnClientInitialized()
     {
-        Invoke("StartTest", testStartDelaySeconds);  //StartTest();
+        Invoke("StartTest", testStartDelaySeconds);
         return;
     }
 

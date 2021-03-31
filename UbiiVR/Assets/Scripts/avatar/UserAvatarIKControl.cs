@@ -8,8 +8,8 @@ using static TrackingIKTargetManager;
 
 
 struct UbiiPose3D {
-    Vector3 vector3;
-    Quaternion rotation;
+    public Vector3 position;
+    public Quaternion rotation;
 }
 
 [RequireComponent(typeof(Animator))]
@@ -27,9 +27,9 @@ public class UserAvatarIKControl : MonoBehaviour
 
     protected Animator animator;
 
-    private Dictionary<IK_TARGET, Transform> mapIKTargets = new Dictionary<IK_TARGET, Transform>();
+    private Dictionary<IK_TARGET, Transform> mapIKTargetTransforms = new Dictionary<IK_TARGET, Transform>();
     //TODO: pull directly from client side topicdata during update once implemented?
-    private Dictionary<IK_TARGET, Ubii.DataStructure.Pose3D> mapIKTarget2Record = new Dictionary<IK_TARGET, Ubii.DataStructure.Pose3D>();
+    private Dictionary<IK_TARGET, UbiiPose3D> mapIKTarget2UbiiPose = new Dictionary<IK_TARGET, UbiiPose3D>();
     private Queue<Vector3> groundCenterTrajectory = new Queue<Vector3>();
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
@@ -57,19 +57,35 @@ public class UserAvatarIKControl : MonoBehaviour
     {
         if (useTopicData && ubiiClient != null && topicDataCommunicator != null)
         {
-            foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
-            {
-                GameObject ikTargetObject = new GameObject("IK Control Target TopicData " + ikTarget.ToString());
-                mapIKTargets.Add(ikTarget, ikTargetObject.transform);
-
-                mapIKTarget2Record.Add(ikTarget, null);
-                /*ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (record) => {
-                    Debug.Log("Subscribe record for " + ikTarget);
-                    mapIKTarget2Record[ikTarget] = record.Pose3D.Clone();
-                });*/
-            }
-            initialized = true;
+            InitIKTopics();
         }
+    }
+
+    async void InitIKTopics()
+    {
+        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
+        {
+            GameObject ikTargetObject = new GameObject("IKControl Target TopicData " + ikTarget.ToString());
+            mapIKTargetTransforms.Add(ikTarget, ikTargetObject.transform);
+            mapIKTarget2UbiiPose.Add(ikTarget, new UbiiPose3D {
+                position = new Vector3(),
+                rotation = new Quaternion()
+            });
+            await ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
+                UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
+                pose.position.Set(
+                    (float)record.Pose3D.Position.X,
+                    (float)record.Pose3D.Position.Y,
+                    (float)record.Pose3D.Position.Z);
+                pose.rotation.Set(
+                    (float)record.Pose3D.Quaternion.X,
+                    (float)record.Pose3D.Quaternion.Y,
+                    (float)record.Pose3D.Quaternion.Z,
+                    (float)record.Pose3D.Quaternion.W);
+                mapIKTarget2UbiiPose[ikTarget] = pose;
+            });
+        }
+        initialized = true;
     }
 
     //TODO: to be removed
@@ -86,7 +102,7 @@ public class UserAvatarIKControl : MonoBehaviour
         ikTargetRightFoot = trackingIKTargetManager.GetIKTargetTransform(IK_TARGET.FOOT_RIGHT);*/
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            mapIKTargets.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
+            mapIKTargetTransforms.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
         }
         initialized = true;
     }
@@ -97,16 +113,17 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
-                Ubii.DataStructure.Pose3D pose = mapIKTarget2Record[ikTarget];
-                Transform ikTargetTransform = mapIKTargets[ikTarget];
-                //Debug.Log(record);
+                UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
+                Transform ikTargetTransform = mapIKTargetTransforms[ikTarget];
 
-                if (pose != null) {
-                    Ubii.DataStructure.Vector3 pos = pose.Position;
-                    Ubii.DataStructure.Quaternion rot = pose.Quaternion;
-                    ikTargetTransform.position = new Vector3((float)pos.X, (float)pos.Y, (float)pos.Z);
-                    ikTargetTransform.rotation = new Quaternion((float)rot.X, (float)rot.Y, (float)rot.Z, (float)rot.W);
-                }
+                //Debug.Log(ikTarget);
+                Vector3 pos = pose.position;
+                Quaternion rot = pose.rotation;
+                //Debug.Log(pos);
+                //Debug.Log(rot);
+                ikTargetTransform.position = new Vector3((float)pos.x, (float)pos.y, (float)pos.z);
+                ikTargetTransform.rotation = new Quaternion((float)rot.x, (float)rot.y, (float)rot.z, (float)rot.w);
+                //Debug.Log(ikTargetTransform);
             }
             //UpdateFromPseudoTopicData();
         }
@@ -119,13 +136,13 @@ public class UserAvatarIKControl : MonoBehaviour
             return;
         }
 
-        Transform ikTargetHip = mapIKTargets[IK_TARGET.HIP];
-        Transform ikTargetLookAt = mapIKTargets[IK_TARGET.VIEWING_DIRECTION];
-        Transform ikTargetHead = mapIKTargets[IK_TARGET.HEAD];
-        Transform ikTargetLeftHand = mapIKTargets[IK_TARGET.HAND_LEFT];
-        Transform ikTargetRightHand = mapIKTargets[IK_TARGET.HAND_RIGHT];
-        Transform ikTargetLeftFoot = mapIKTargets[IK_TARGET.FOOT_LEFT];
-        Transform ikTargetRightFoot = mapIKTargets[IK_TARGET.FOOT_RIGHT];
+        Transform ikTargetHip = mapIKTargetTransforms[IK_TARGET.HIP];
+        Transform ikTargetLookAt = mapIKTargetTransforms[IK_TARGET.VIEWING_DIRECTION];
+        Transform ikTargetHead = mapIKTargetTransforms[IK_TARGET.HEAD];
+        Transform ikTargetLeftHand = mapIKTargetTransforms[IK_TARGET.HAND_LEFT];
+        Transform ikTargetRightHand = mapIKTargetTransforms[IK_TARGET.HAND_RIGHT];
+        Transform ikTargetLeftFoot = mapIKTargetTransforms[IK_TARGET.FOOT_LEFT];
+        Transform ikTargetRightFoot = mapIKTargetTransforms[IK_TARGET.FOOT_RIGHT];
 
         // position body
         if (ikTargetHip != null)
@@ -287,8 +304,8 @@ public class UserAvatarIKControl : MonoBehaviour
             //Debug.Log(ikTargets[ikTarget]);
             //Debug.Log(topicData.GetVector3(PseudoTopicDataCommunicator.GetTopicIKTargetPosition(ikTarget)));
             try {
-                mapIKTargets[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
-                mapIKTargets[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
+                mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
+                mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
             }
             catch (Exception exception)
             {

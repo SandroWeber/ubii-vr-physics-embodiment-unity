@@ -15,7 +15,7 @@ public class TopicDataCommunicator : MonoBehaviour
     static string TOPIC_PREFIX_IK_TARGET_POSE = "/avatar/ik_target/pose";
 
     public bool usePseudoTopicData = false;
-    public int publishFrequency = 10;
+    public int publishFrequency = 15;
     public TrackingIKTargetManager ikTargetManager = null;
     public AnimationManager animationManager = null;
 
