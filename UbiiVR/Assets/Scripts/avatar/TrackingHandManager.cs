@@ -5,7 +5,7 @@ using Valve.VR;
 
 public class TrackingHandManager : MonoBehaviour {
 
-    [SerializeField] private TrackingIKTargetManager trackingIKTargetManager;
+    [SerializeField] private VRTrackingManager VRTrackingManager;
     [SerializeField] private SteamVR_Behaviour_Skeleton leftHand;
     [SerializeField] private SteamVR_Behaviour_Skeleton rightHand;
 

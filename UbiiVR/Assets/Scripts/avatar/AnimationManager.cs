@@ -4,8 +4,6 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
-using static TrackingIKTargetManager;
-
 public class AnimationManager : MonoBehaviour
 {
     public Animator animator;
@@ -62,9 +60,9 @@ public class AnimationManager : MonoBehaviour
     {
         Transform transformHead = animator.GetBoneTransform(HumanBodyBones.Head);
         emulatedIKTargets.Add(IK_TARGET.HEAD,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Head", transformHead, IK_TARGET.HEAD));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Head", transformHead, IK_TARGET.HEAD));
         emulatedIKTargets.Add(IK_TARGET.VIEWING_DIRECTION,
-            TrackingIKTargetManager.GenerateIKTarget(
+            VRTrackingManager.GenerateIKTarget(
                 "Animation Emulated IK Target Look At", 
                 transformHead, 
                 IK_TARGET.VIEWING_DIRECTION,
@@ -72,22 +70,22 @@ public class AnimationManager : MonoBehaviour
 
         Transform transformHips = animator.GetBoneTransform(HumanBodyBones.Hips);
         emulatedIKTargets.Add(IK_TARGET.HIP,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Hips", transformHips, IK_TARGET.HIP));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Hips", transformHips, IK_TARGET.HIP));
 
         Transform transformLeftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
         emulatedIKTargets.Add(IK_TARGET.HAND_LEFT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Left Hand", transformLeftHand, IK_TARGET.HAND_LEFT));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Left Hand", transformLeftHand, IK_TARGET.HAND_LEFT));
 
         Transform transformRightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
         emulatedIKTargets.Add(IK_TARGET.HAND_RIGHT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Right Hand", transformRightHand, IK_TARGET.HAND_RIGHT));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Right Hand", transformRightHand, IK_TARGET.HAND_RIGHT));
 
         Transform transformLeftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
         emulatedIKTargets.Add(IK_TARGET.FOOT_LEFT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Left Foot", transformLeftFoot, IK_TARGET.FOOT_LEFT));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Left Foot", transformLeftFoot, IK_TARGET.FOOT_LEFT));
 
         Transform transformRightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
         emulatedIKTargets.Add(IK_TARGET.FOOT_RIGHT,
-            TrackingIKTargetManager.GenerateIKTarget("Animation Emulated IK Target Right Foot", transformRightFoot, IK_TARGET.FOOT_RIGHT));
+            VRTrackingManager.GenerateIKTarget("Animation Emulated IK Target Right Foot", transformRightFoot, IK_TARGET.FOOT_RIGHT));
     }
 }

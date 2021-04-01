@@ -2,19 +2,8 @@
 using UnityEngine;
 using Valve.VR;
 
-public class TrackingIKTargetManager : MonoBehaviour
+public class VRTrackingManager : MonoBehaviour
 {
-    public enum IK_TARGET
-    {
-        HEAD = 0,
-        VIEWING_DIRECTION,
-        HIP,
-        HAND_LEFT,
-        HAND_RIGHT,
-        FOOT_LEFT,
-        FOOT_RIGHT
-    }
-
     private class TrackingReferenceObject
     {
         public ETrackedDeviceClass trackedDeviceClass;
@@ -403,7 +392,7 @@ public class TrackingIKTargetManager : MonoBehaviour
     public static GameObject GenerateIKTarget(
         string name,
         Transform parent,
-        TrackingIKTargetManager.IK_TARGET part,
+        IK_TARGET part,
         Vector3 localPos = new Vector3(),
         Quaternion localRot = new Quaternion())
     {

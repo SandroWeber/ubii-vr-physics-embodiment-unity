@@ -6,9 +6,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf.Collections;
 
-using static TrackingIKTargetManager;
+struct UbiiPose3D {
+    public Vector3 position;
+    public Quaternion rotation;
+}
 
-public class TopicDataCommunicator : MonoBehaviour
+public enum IK_TARGET
+{
+        HEAD = 0,
+        VIEWING_DIRECTION,
+        HIP,
+        HAND_LEFT,
+        HAND_RIGHT,
+        FOOT_LEFT,
+        FOOT_RIGHT
+}
+
+public class IKTargetsManager : MonoBehaviour
 {
     static string TOPIC_PREFIX_IK_TARGET_POSITION = "/avatar/ik_target/pos";
     static string TOPIC_PREFIX_IK_TARGET_ROTATION = "/avatar/ik_target/rot";
@@ -16,13 +30,13 @@ public class TopicDataCommunicator : MonoBehaviour
 
     public bool usePseudoTopicData = false;
     public int publishFrequency = 15;
-    public TrackingIKTargetManager ikTargetManager = null;
+    public VRTrackingManager vrTrackingManager = null;
     public AnimationManager animationManager = null;
+    public Vector3 manualPositionOffset = new Vector3();
 
     private PseudoTopicData pseudoTopicdata = null;
     private UbiiClient ubiiClient = null;
     private bool running = false;
-    private IEnumerator publishCoroutine = null;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
 
@@ -41,10 +55,6 @@ public class TopicDataCommunicator : MonoBehaviour
     void OnDisable()
     {
         UbiiClient.OnInitialized -= OnUbiiClientInitialized;
-        if (publishCoroutine != null)
-        {
-            StopCoroutine(publishCoroutine);
-        }
         running = false;
     }
 
@@ -52,19 +62,6 @@ public class TopicDataCommunicator : MonoBehaviour
     {
         running = true;
         secondsBetweenPublish = 1f / (float)publishFrequency;
-
-        //TODO: make ubii client networking threaded & thread-safe
-        //publishCoroutine = PublishIKTargetsCoroutine(waitTimeSeconds);
-        //StartCoroutine(publishCoroutine);
-        /*Task.Run(() => {
-            while (running)
-            {
-                PublishTopicDataIKTargets();
-    
-                Thread.Sleep((int)(waitTimeSeconds * 1000));
-                Debug.Log("running: " + running);
-            }
-        });*/
         tLastPublish = Time.time;
     }
 
@@ -122,9 +119,9 @@ public class TopicDataCommunicator : MonoBehaviour
             string topic = GetTopicIKTargetPose(ikTarget);
 
             Transform ikTargetTransform = null;
-            if (ikTargetManager.IsReady())
+            if (vrTrackingManager.IsReady())
             {
-                ikTargetTransform = ikTargetManager.GetIKTargetTransform(ikTarget);
+                ikTargetTransform = vrTrackingManager.GetIKTargetTransform(ikTarget);
             }
             else if (animationManager != null)
             {
@@ -137,9 +134,9 @@ public class TopicDataCommunicator : MonoBehaviour
                 Pose3D = new Ubii.DataStructure.Pose3D
                 {
                     Position = new Ubii.DataStructure.Vector3 { 
-                        X = ikTargetTransform.position.x,
-                        Y = ikTargetTransform.position.y,
-                        Z = ikTargetTransform.position.z },
+                        X = ikTargetTransform.position.x + manualPositionOffset.x,
+                        Y = ikTargetTransform.position.y + manualPositionOffset.y,
+                        Z = ikTargetTransform.position.z + manualPositionOffset.z },
                     Quaternion = new Ubii.DataStructure.Quaternion {
                         X = ikTargetTransform.rotation.x,
                         Y = ikTargetTransform.rotation.y,
@@ -154,8 +151,8 @@ public class TopicDataCommunicator : MonoBehaviour
 
     private void PublishPseudoTopicData()
     {
-        //Debug.Log("PseudoTopicDataCommunicator.Update()");
-        if (ikTargetManager.IsReady())
+        //Debug.Log("PseudoIKTargetsManager.Update()");
+        if (vrTrackingManager.IsReady())
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
@@ -164,7 +161,7 @@ public class TopicDataCommunicator : MonoBehaviour
                 //Debug.Log(topicPos);
                 string topicRot = TOPIC_PREFIX_IK_TARGET_ROTATION + "/" + partName;
                 //Debug.Log(topicRot);
-                Transform ikTargetTransform = ikTargetManager.GetIKTargetTransform(ikTarget);
+                Transform ikTargetTransform = vrTrackingManager.GetIKTargetTransform(ikTarget);
                 pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
                 pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
             }

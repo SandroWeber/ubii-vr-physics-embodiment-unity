@@ -4,22 +4,14 @@ using UnityEngine;
 using System;
 using Ubii.TopicData;
 
-using static TrackingIKTargetManager;
-
-
-struct UbiiPose3D {
-    public Vector3 position;
-    public Quaternion rotation;
-}
-
 [RequireComponent(typeof(Animator))]
-public class UserAvatarIKControl : MonoBehaviour
+public class AvatarPoseEstimator : MonoBehaviour
 {
     public bool ikActive = true;
     public bool useTopicData = true;
     public UbiiClient ubiiClient = null;
-    public TopicDataCommunicator topicDataCommunicator = null;
-    public TrackingIKTargetManager trackingIKTargetManager;
+    public IKTargetsManager ikTargetsManager = null;
+    public VRTrackingManager vrTrackingManager;
     public TrackingHandManager trackingHandManager;
     public Pose manualBodyOffset;
     [Tooltip("If we need to infer hip position from head and feet targets, adjust the ratio to place it along distance from feet to head.")]
@@ -43,19 +35,19 @@ public class UserAvatarIKControl : MonoBehaviour
 
     void OnEnable()
     {
-        TrackingIKTargetManager.OnInitialized += InitInternalIKTargets;
+        VRTrackingManager.OnInitialized += InitInternalIKTargets;
         UbiiClient.OnInitialized += OnUbiiClientInitialized;
     }
 
     void OnDisable()
     {
-        TrackingIKTargetManager.OnInitialized -= InitInternalIKTargets;
+        VRTrackingManager.OnInitialized -= InitInternalIKTargets;
         UbiiClient.OnInitialized -= OnUbiiClientInitialized;
     }
 
     void OnUbiiClientInitialized()
     {
-        if (useTopicData && ubiiClient != null && topicDataCommunicator != null)
+        if (useTopicData && ubiiClient != null && ikTargetsManager != null)
         {
             InitIKTopics();
         }
@@ -65,13 +57,13 @@ public class UserAvatarIKControl : MonoBehaviour
     {
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            GameObject ikTargetObject = new GameObject("IKControl Target TopicData " + ikTarget.ToString());
+            GameObject ikTargetObject = new GameObject("IK-Target PoseEstimator " + ikTarget.ToString());
             mapIKTargetTransforms.Add(ikTarget, ikTargetObject.transform);
             mapIKTarget2UbiiPose.Add(ikTarget, new UbiiPose3D {
                 position = new Vector3(),
                 rotation = new Quaternion()
             });
-            await ubiiClient.Subscribe(topicDataCommunicator.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
+            await ubiiClient.Subscribe(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
                 pose.position.Set(
                     (float)record.Pose3D.Position.X,
@@ -95,7 +87,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            mapIKTargetTransforms.Add(ikTarget, trackingIKTargetManager.GetIKTargetTransform(ikTarget));
+            mapIKTargetTransforms.Add(ikTarget, vrTrackingManager.GetIKTargetTransform(ikTarget));
         }
         initialized = true;
     }
@@ -168,7 +160,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
             // determine ground center of stability
             Vector3 groundCenter;
-            float thresholdFootOffGround = 1.5f * trackingIKTargetManager.feetTargetOffsetAboveGround;
+            float thresholdFootOffGround = 1.5f * vrTrackingManager.feetTargetOffsetAboveGround;
             // both feet on the ground
             if (leftFootHeight < thresholdFootOffGround && rightFootHeight < thresholdFootOffGround)
             {
@@ -213,13 +205,13 @@ public class UserAvatarIKControl : MonoBehaviour
             bodyPosition = new Vector3(groundCenter.x, groundCenter.y + inferredHipPosFeet2HeadDistanceRatio * distanceFeet2Head, groundCenter.z);
             bodyPosition.z -= 0.2f * bodyForward.z;
 
-            this.transform.position = bodyPosition;
+            animator.bodyPosition = bodyPosition;
             //Debug.Log("head + feet inferred pos:");
             //Debug.Log(this.transform.position);
 
             // set body rotation
             Quaternion bodyRotation = Quaternion.LookRotation(bodyForward, bodyUp);
-            this.transform.rotation = bodyRotation;
+            animator.bodyRotation = bodyRotation;
 
         }
         // no body target, only head target to interpolate from
@@ -227,7 +219,7 @@ public class UserAvatarIKControl : MonoBehaviour
         {
             Vector3 inferredPos = ikTargetHead.position;
             inferredPos.y = inferredHipPosFeet2HeadDistanceRatio * inferredPos.y;
-            this.transform.position = new Vector3(inferredPos.x, inferredPos.y, inferredPos.z);  // + Quaternion.FromToRotation(Vector3.up, interpolatedUpVector) * headToBodyOffset;
+            animator.bodyPosition = new Vector3(inferredPos.x, inferredPos.y, inferredPos.z);  // + Quaternion.FromToRotation(Vector3.up, interpolatedUpVector) * headToBodyOffset;
 
             Vector3 forward;
             if (ikTargetRightHand != null && ikTargetLeftHand != null)
@@ -239,7 +231,7 @@ public class UserAvatarIKControl : MonoBehaviour
             {
                 forward = ikTargetHead.forward;
             }
-            this.transform.rotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(forward, Vector3.up), Vector3.up);
+            animator.bodyRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(forward, Vector3.up), Vector3.up);
         }
     }
 
@@ -254,7 +246,7 @@ public class UserAvatarIKControl : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (trackingIKTargetManager.IsReady() && DetermineVRController.Instance.UseKnucklesControllers())
+        if (vrTrackingManager.IsReady() && DetermineVRController.Instance.UseKnucklesControllers())
         {
             UpdateFingerTargets();
         }
@@ -275,8 +267,8 @@ public class UserAvatarIKControl : MonoBehaviour
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
             try {
-                mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(TopicDataCommunicator.GetTopicIKTargetPosition(ikTarget));
-                mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(TopicDataCommunicator.GetTopicIKTargetRotation(ikTarget));
+                mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(IKTargetsManager.GetTopicIKTargetPosition(ikTarget));
+                mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(IKTargetsManager.GetTopicIKTargetRotation(ikTarget));
             }
             catch (Exception exception)
             {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UserAvatarVisuals : MonoBehaviour {
+public class TransparencySettings : MonoBehaviour {
 
     public float opacity = 0.5f;
 
