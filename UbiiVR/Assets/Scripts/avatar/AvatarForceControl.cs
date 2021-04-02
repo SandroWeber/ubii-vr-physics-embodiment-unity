@@ -9,16 +9,12 @@ struct UbiiRigidbodyForces {
 
 public class AvatarForceControl : MonoBehaviour
 {
-    static string TOPIC_PREFIX_FORCE_LINEAR = "/avatar/linear_force";
-    static string TOPIC_PREFIX_FORCE_ANGULAR = "/avatar/angular_force";
-
     public AvatarPhysicsManager avatarPhysicsManager = null;
-    
-    public int publishFrequency = 15;
+    public AvatarPhysicsEstimator avatarPhysicsEstimator = null;
 
-    private Dictionary<HumanBodyBones, Vector3> mapBone2TargetPosition = new Dictionary<HumanBodyBones, Vector3>();
-    private Dictionary<HumanBodyBones, Quaternion> mapBone2TargetRotation = new Dictionary<HumanBodyBones, Quaternion>();
-    private Dictionary<HumanBodyBones, UbiiRigidbodyForces> mapBone2Forces = new Dictionary<HumanBodyBones, UbiiRigidbodyForces>();
+    //private Dictionary<HumanBodyBones, Vector3> mapBone2TargetPosition = new Dictionary<HumanBodyBones, Vector3>();
+    //private Dictionary<HumanBodyBones, Quaternion> mapBone2TargetRotation = new Dictionary<HumanBodyBones, Quaternion>();
+    private Dictionary<HumanBodyBones, UbiiRigidbodyForces> mapBone2TargetVelocities = new Dictionary<HumanBodyBones, UbiiRigidbodyForces>();
     private UbiiClient ubiiClient = null;
     private bool ubiiReady = false, physicsReady = false;
 
@@ -45,8 +41,32 @@ public class AvatarForceControl : MonoBehaviour
         physicsReady = false;
     }
 
-    void OnUbiiClientInitialized()
+    async void OnUbiiClientInitialized()
     {
+        await ubiiClient.Subscribe(avatarPhysicsEstimator.GetTopicTargetVelocities(), (Ubii.TopicData.TopicDataRecord record) => {
+            for (int i=0; i < record.Object3DList.Elements.Count; i++)
+            {
+                //Debug.Log(record.Object3DList.Elements[i]);
+                string boneString = record.Object3DList.Elements[i].Id;
+                HumanBodyBones bone;
+                if (HumanBodyBones.TryParse(boneString, out bone)) {
+                    Ubii.DataStructure.Pose3D pose = record.Object3DList.Elements[i].Pose;
+                    UbiiRigidbodyForces targetVelocities = new UbiiRigidbodyForces {
+                        linear = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
+                        angular = new Vector3((float)pose.Euler.X, (float)pose.Euler.Y, (float)pose.Euler.Z)
+                    };
+                    if (mapBone2TargetVelocities.ContainsKey(bone))
+                    {
+                        mapBone2TargetVelocities[bone] = targetVelocities;
+                    }
+                    else
+                    {
+                        mapBone2TargetVelocities.Add(bone, targetVelocities);
+                    }
+                }
+            }
+        });
+
         ubiiReady = true;
     }
 
@@ -66,6 +86,7 @@ public class AvatarForceControl : MonoBehaviour
                 if (rigidbody != null)
                 {
                     //ActuateRigidbodyFromBoneTargetPosRot(rigidbody, entry.Key);
+                    ActuateRigidbodyFromTargetVelocities(entry.Key, rigidbody);
                 }
             }
         }
@@ -110,8 +131,14 @@ public class AvatarForceControl : MonoBehaviour
         }
     }*/
 
-    public void SetBoneForces(HumanBodyBones bones, Vector3 linearForce, Vector3 angularForce)
+    private void ActuateRigidbodyFromTargetVelocities(HumanBodyBones bone, Rigidbody rigidbody)
     {
+        UbiiRigidbodyForces targetVelocities;
+        if (mapBone2TargetVelocities.TryGetValue(bone, out targetVelocities))
+        {
+            AvatarForceControl.AddForceFromTargetLinearVelocity(rigidbody, targetVelocities.linear);
+            AvatarForceControl.AddTorqueFromTargetAngularVelocity(rigidbody, targetVelocities.angular);
+        }
 
     }
 

@@ -15,7 +15,6 @@ public struct MIXAMO_RIG {
     public static string PREFIX_ARMATURE = "mixamorig_";
 }
 
-
 //[RequireComponent(typeof(BoneMeshContainer))]
 [RequireComponent(typeof(Animator))]
 public class AvatarPhysicsManager : MonoBehaviour
@@ -32,10 +31,7 @@ public class AvatarPhysicsManager : MonoBehaviour
     public JOINT_TYPE jointType;
 
     public bool resetVelocityCalculation = true;
-    public bool testActuateRigidBody = true;
-    public bool testActuateApplyLinearForce = true;
-    public bool testActuateApplyAngularForce = true;
-    public int publishFrequency = 15;
+    public int publishFrequency = 30;
 
     private UbiiClient ubiiClient = null;
     private bool initialized;
@@ -287,20 +283,22 @@ public class AvatarPhysicsManager : MonoBehaviour
         ubiiClient.Publish(topicData);
     }
 
-    private string GetTopicCurrentPose(HumanBodyBones bone)
+    public string GetTopicCurrentPose(HumanBodyBones bone)
     {
         return "/" + ubiiClient.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/" + bone.ToString();
     }
 
-    private string GetTopicCurrentPoseList()
+    public string GetTopicCurrentPoseList()
     {
         return "/" + ubiiClient.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/list";
     }
 
     #region getters
+
     public Dictionary<HumanBodyBones, Rigidbody> GetMapBone2Rigidbody()
     {
         return mapBone2Rigidbody;
     }
+
     #endregion
 }
