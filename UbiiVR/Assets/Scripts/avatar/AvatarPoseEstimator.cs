@@ -80,7 +80,6 @@ public class AvatarPoseEstimator : MonoBehaviour
         initialized = true;
     }
 
-    //TODO: to be removed
     void InitInternalIKTargets()
     {
         if (useTopicData || !ikActive) return;
@@ -106,7 +105,6 @@ public class AvatarPoseEstimator : MonoBehaviour
                 ikTargetTransform.position = new Vector3((float)pos.x, (float)pos.y, (float)pos.z);
                 ikTargetTransform.rotation = new Quaternion((float)rot.x, (float)rot.y, (float)rot.z, (float)rot.w);
             }
-            //UpdateFromPseudoTopicData();
         }
     }
 
@@ -206,8 +204,6 @@ public class AvatarPoseEstimator : MonoBehaviour
             bodyPosition.z -= 0.2f * bodyForward.z;
 
             animator.bodyPosition = bodyPosition;
-            //Debug.Log("head + feet inferred pos:");
-            //Debug.Log(this.transform.position);
 
             // set body rotation
             Quaternion bodyRotation = Quaternion.LookRotation(bodyForward, bodyUp);

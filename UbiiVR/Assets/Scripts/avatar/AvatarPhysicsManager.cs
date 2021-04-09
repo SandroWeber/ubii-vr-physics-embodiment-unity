@@ -41,15 +41,9 @@ public class AvatarPhysicsManager : MonoBehaviour
 
     private Animator animator;
 
-    //The bones of the character that physiscs should be applied to
-    //Dictionary<HumanBodyBones, GameObject> mapBone2GameObject = new Dictionary<HumanBodyBones, GameObject>();
     private Dictionary<HumanBodyBones, Rigidbody> mapBone2Rigidbody = new Dictionary<HumanBodyBones, Rigidbody>();
     private Dictionary<HumanBodyBones, Transform> mapBone2TargetTransform = new Dictionary<HumanBodyBones, Transform>();
-    //Dictionary<GameObject, HumanBodyBones> bonesPerGameObjectRemoteAvatar = new Dictionary<GameObject, HumanBodyBones>();
 
-    //private List<HumanBodyBones> bonesInOrder = new List<HumanBodyBones>();
-
-    // Use this for initialization
     void Start()
     {
         ubiiClient = FindObjectOfType<UbiiClient>();
@@ -83,7 +77,6 @@ public class AvatarPhysicsManager : MonoBehaviour
             float tNow = Time.time;
             if (tNow >= tLastPublish + secondsBetweenPublish)
             {
-                //PublishCurrentPosesPerBone();
                 PublishCurrentPosesList();
                 tLastPublish = tNow;
             }
@@ -123,14 +116,11 @@ public class AvatarPhysicsManager : MonoBehaviour
                 if (bone != HumanBodyBones.LastBone)
                 {
                     Transform armatureBoneTransform = animator.GetBoneTransform(bone);
-                    //Debug.Log(bone);
                     if (armatureBoneTransform != null)
                     {
                         string boneName = armatureBoneTransform.name.Substring(MIXAMO_RIG.PREFIX_ARMATURE.Length);
-                        //Debug.Log(boneName);
                         GameObject boneGeometryGameObject = GameObject.Find(MIXAMO_RIG.PREFIX_GEOMETRY_SURFACES + boneName);
                         Rigidbody rigidbody = AddPhysicsComponents(armatureBoneTransform.gameObject, boneGeometryGameObject);
-                        //mapBone2GameObject.Add(bone, armatureBoneTransform.gameObject);
                         mapBone2Rigidbody.Add(bone, rigidbody);
                     }
                 }
@@ -140,32 +130,6 @@ public class AvatarPhysicsManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    ///     A method to return the Rigidbody of the GameObject that corresponds to a certain bodypart. 
-    ///     Use this to gain access to the velocity of the bodypart.
-    /// </summary>
-    /*public Rigidbody GetRigidbodyFromBone(HumanBodyBones boneID)
-    {
-        GameObject obj;
-        if (this.mapBone2GameObject.TryGetValue(boneID, out obj))
-        {
-            Rigidbody rb = obj.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                return rb;
-            }
-            else
-            {
-                Debug.Log("No rigidbody is assigned to the bone " + boneID + "\nMake sure to initialize AvatarPhysicsManager first.");
-                return null;
-            }
-        }
-        else
-        {
-            Debug.Log("No object is assigned to the bone " + boneID);
-            return null;
-        }
-    }*/
     public Rigidbody GetRigidbodyFromBone(HumanBodyBones boneID)
     {
         return mapBone2Rigidbody[boneID];

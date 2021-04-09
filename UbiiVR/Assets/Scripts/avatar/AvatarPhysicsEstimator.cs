@@ -85,7 +85,6 @@ public class AvatarPhysicsEstimator : MonoBehaviour
                         targetPosition /= armatureChildCount + 1;
                     }
 
-                    //Debug.Log(targetPosition);
                     boneTarget.transform.position = targetPosition;
                     boneTarget.transform.parent = armatureJointTransform;
                     mapBone2TargetTransform.Add(bone, boneTarget.transform);
@@ -100,11 +99,9 @@ public class AvatarPhysicsEstimator : MonoBehaviour
             Google.Protobuf.Collections.RepeatedField<Ubii.DataStructure.Object3D> objects = record.Object3DList.Elements;
             for (int i=0; i < record.Object3DList.Elements.Count; i++)
             {
-                //Debug.Log(record.Object3DList.Elements[i]);
                 string boneString = record.Object3DList.Elements[i].Id;
                 HumanBodyBones bone;
                 if (HumanBodyBones.TryParse(boneString, out bone)) {
-                    //Debug.Log(bone);
                     Ubii.DataStructure.Pose3D pose = record.Object3DList.Elements[i].Pose;
                     UbiiPose3D newMapPose = new UbiiPose3D {
                         position = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
@@ -136,63 +133,16 @@ public class AvatarPhysicsEstimator : MonoBehaviour
             else
             {
                 //TODO: make ubii client networking threaded & thread-safe
+                // opens possibility to publish from coroutine
                 float tNow = Time.time;
                 if (tNow >= tLastPublish + secondsBetweenPublish)
                 {
-                    //PublishTopicDataIKTargets();
                     PublishTopicDataForces();
                     tLastPublish = tNow;
                 }
             }
         }
     }
-
-    /*void SetTargetTransformFromArmatureJoint(HumanBodyBones bone, Transform armatureJointTransform)
-    {
-        Vector3 armaturePosition = armatureJointTransform.position;
-        Vector3 targetPosition = new Vector3();
-        // since we receive the position of the armature joint and not the position of the bone in between those joints
-        // which is the geometry carrying a rigidbody, colliders and mass
-        // we need to interpolate the true target position between it and all its child joint positions
-        // to arrive at an estimate center position where the bone would be
-        targetPosition.Set(armaturePosition.x, armaturePosition.y, armaturePosition.z);
-        if (bone != HumanBodyBones.UpperChest)
-        {
-            int armatureChildCount = 0;
-            foreach (Transform child in armatureJointTransform)
-            {
-                if (child.name.Contains(MIXAMO_RIG.PREFIX_ARMATURE))
-                {
-                    targetPosition += child.position;
-                    armatureChildCount++;
-                }
-            }
-            targetPosition /= armatureChildCount + 1;
-        }
-
-        //Debug.Log(targetPosition);
-        if (!this.mapBone2TargetPosition.ContainsKey(bone))
-        {
-            this.mapBone2TargetPosition.Add(bone, targetPosition);
-        }
-        else
-        {
-            this.mapBone2TargetPosition[bone] = targetPosition;
-        }
-
-        // target rotation
-        Quaternion armatureRotation = armatureJointTransform.rotation;
-        Quaternion targetRotation = new Quaternion();
-        targetRotation.Set(armatureRotation.x, armatureRotation.y, armatureRotation.z, armatureRotation.w);
-        if (!this.mapBone2TargetRotation.ContainsKey(bone))
-        {
-            this.mapBone2TargetRotation.Add(bone, targetRotation);
-        }
-        else
-        {
-            this.mapBone2TargetRotation[bone] = targetRotation;
-        }
-    }*/
 
     private void PublishTopicDataForces()
     {
