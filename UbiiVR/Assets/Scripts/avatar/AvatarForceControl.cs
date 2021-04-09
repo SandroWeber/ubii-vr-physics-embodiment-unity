@@ -51,23 +51,32 @@ public class AvatarForceControl : MonoBehaviour
                 HumanBodyBones bone;
                 if (HumanBodyBones.TryParse(boneString, out bone)) {
                     Ubii.DataStructure.Pose3D pose = record.Object3DList.Elements[i].Pose;
-                    UbiiRigidbodyForces targetVelocities = new UbiiRigidbodyForces {
-                        linear = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
-                        angular = new Vector3((float)pose.Euler.X, (float)pose.Euler.Y, (float)pose.Euler.Z)
-                    };
-                    if (mapBone2TargetVelocities.ContainsKey(bone))
-                    {
-                        mapBone2TargetVelocities[bone] = targetVelocities;
-                    }
-                    else
-                    {
-                        mapBone2TargetVelocities.Add(bone, targetVelocities);
-                    }
+                    //Debug.Log(bone);
+                    //Debug.Log(pose);
+                    Vector3 linear = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z);
+                    Vector3 angular = new Vector3((float)pose.Euler.X, (float)pose.Euler.Y, (float)pose.Euler.Z);
+                    SetTargetVelocity(bone, linear, angular);
                 }
             }
         });
 
         ubiiReady = true;
+    }
+
+    public void SetTargetVelocity(HumanBodyBones bone, Vector3 linear, Vector3 angular)
+    {
+        UbiiRigidbodyForces targetVelocities = new UbiiRigidbodyForces {
+            linear = linear,
+            angular = angular
+        };
+        if (mapBone2TargetVelocities.ContainsKey(bone))
+        {
+            mapBone2TargetVelocities[bone] = targetVelocities;
+        }
+        else
+        {
+            mapBone2TargetVelocities.Add(bone, targetVelocities);
+        }
     }
 
     void OnPhysicsManagerInitialized()
@@ -78,7 +87,7 @@ public class AvatarForceControl : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (ubiiReady && physicsReady)
+        if (/*ubiiReady &&*/ physicsReady)
         {
             foreach(KeyValuePair<HumanBodyBones, Rigidbody> entry in avatarPhysicsManager.GetMapBone2Rigidbody())
             {

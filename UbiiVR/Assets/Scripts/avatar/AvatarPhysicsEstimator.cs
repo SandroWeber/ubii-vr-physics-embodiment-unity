@@ -10,7 +10,12 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     public GameObject avatarPoseEstimation = null;
     public AvatarPhysicsManager avatarPhysicsManager = null;
+    public AvatarForceControl avatarForceControl = null;
     public int publishFrequency = 15;
+    [Tooltip("For target velocities of AvatarForceControl, don't use topics but directly set them")]
+    public bool setVelocitiesDirectly = true;
+    public Vector2 scalingFactorsVelocities = new Vector2(1, 1);
+    public Vector3 manualPositionOffset = new Vector3();
 
     private UbiiClient ubiiClient = null;
     private bool ubiiReady = false;
@@ -124,25 +129,23 @@ public class AvatarPhysicsEstimator : MonoBehaviour
     {
         if (ubiiReady)
         {
-            //TODO: make ubii client networking threaded & thread-safe
-            float tNow = Time.time;
-            if (tNow >= tLastPublish + secondsBetweenPublish)
+            if (setVelocitiesDirectly)
             {
-                //PublishTopicDataIKTargets();
-                PublishTopicDataForces();
-                tLastPublish = tNow;
+                SetTargetVelocitiesDirectly();
+            }
+            else
+            {
+                //TODO: make ubii client networking threaded & thread-safe
+                float tNow = Time.time;
+                if (tNow >= tLastPublish + secondsBetweenPublish)
+                {
+                    //PublishTopicDataIKTargets();
+                    PublishTopicDataForces();
+                    tLastPublish = tNow;
+                }
             }
         }
     }
-
-    /*void FixedUpdate()
-    {
-        if (ubiiReady)
-        {
-            // direct internal calculation for comparison
-            //CalculateForcesInternally();
-        }
-    }*/
 
     /*void SetTargetTransformFromArmatureJoint(HumanBodyBones bone, Transform armatureJointTransform)
     {
@@ -203,37 +206,20 @@ public class AvatarPhysicsEstimator : MonoBehaviour
             HumanBodyBones bone = entry.Key;
             Transform targetTransform = entry.Value;
 
-            Rigidbody rigidbody = avatarPhysicsManager.GetRigidbodyFromBone(bone);
             UbiiPose3D currentPose;
             if (mapBone2CurrentPose.TryGetValue(bone, out currentPose))
             {
-                // linear force
-                Vector3 deltaPosition = GetPositionError(currentPose.position, targetTransform.position);
-                Vector3 targetVelocity = deltaPosition / Time.deltaTime;
-                //AvatarForceControl.AddForceFromTargetLinearVelocity(rigidbody, targetVelocity);
-        
-                // angular force
-                Quaternion rotationDir = targetTransform.rotation * Quaternion.Inverse(currentPose.rotation);
-        
-                float angleInDegrees;
-                Vector3 rotationAxis;
-                rotationDir.ToAngleAxis(out angleInDegrees, out rotationAxis);
-                rotationAxis.Normalize();
-        
-                Vector3 angularDifference = rotationAxis * angleInDegrees * Mathf.Deg2Rad;
-                Vector3 angularSpeed = angularDifference / Time.deltaTime;
-    
-                //AvatarForceControl.AddTorqueFromTargetAngularVelocity(rigidbody, angularSpeed);
-                
+                Vector3 linearVelocity = scalingFactorsVelocities.x * GetIdealLinearVelocity(currentPose.position, targetTransform.position + manualPositionOffset);
+                Vector3 angularSpeed = scalingFactorsVelocities.y * GetIdealAngularVelocity(currentPose.rotation, targetTransform.rotation);
 
                 topicData.TopicDataRecord.Object3DList.Elements.Add(new Ubii.DataStructure.Object3D { 
                     Id = bone.ToString(),
                     Pose = new Ubii.DataStructure.Pose3D
                     {
                         Position = new Ubii.DataStructure.Vector3 { 
-                            X = targetVelocity.x,
-                            Y = targetVelocity.y,
-                            Z = targetVelocity.z },
+                            X = linearVelocity.x,
+                            Y = linearVelocity.y,
+                            Z = linearVelocity.z },
                         Euler = new Ubii.DataStructure.Vector3 {
                             X = angularSpeed.x,
                             Y = angularSpeed.y,
@@ -247,34 +233,41 @@ public class AvatarPhysicsEstimator : MonoBehaviour
         ubiiClient.Publish(topicData);
     }
 
-    private void CalculateForcesInternally()
+    private void SetTargetVelocitiesDirectly()
     {
         foreach(KeyValuePair<HumanBodyBones, Transform> entry in mapBone2TargetTransform)
         {
             HumanBodyBones bone = entry.Key;
             Transform targetTransform = entry.Value;
 
-            Rigidbody rigidbody = avatarPhysicsManager.GetRigidbodyFromBone(bone);
-            Transform currentTransform = rigidbody.transform;
-
-            // linear force
-            Vector3 deltaPosition = GetPositionError(currentTransform.position, targetTransform.position);
-            Vector3 targetVelocity = deltaPosition / Time.deltaTime;
-            AvatarForceControl.AddForceFromTargetLinearVelocity(rigidbody, targetVelocity);
-
-            // angular force
-            Quaternion rotationDir = targetTransform.rotation * Quaternion.Inverse(currentTransform.rotation);
+            UbiiPose3D currentPose;
+            if (mapBone2CurrentPose.TryGetValue(bone, out currentPose))
+            {
+                Vector3 linearVelocity = scalingFactorsVelocities.x * GetIdealLinearVelocity(currentPose.position, targetTransform.position + manualPositionOffset);
+                Vector3 angularSpeed = scalingFactorsVelocities.y * GetIdealAngularVelocity(currentPose.rotation, targetTransform.rotation);
     
-            float angleInDegrees;
-            Vector3 rotationAxis;
-            rotationDir.ToAngleAxis(out angleInDegrees, out rotationAxis);
-            rotationAxis.Normalize();
-    
-            Vector3 angularDifference = rotationAxis * angleInDegrees * Mathf.Deg2Rad;
-            Vector3 angularSpeed = angularDifference / Time.deltaTime;
-
-            AvatarForceControl.AddTorqueFromTargetAngularVelocity(rigidbody, angularSpeed);
+                avatarForceControl.SetTargetVelocity(bone, linearVelocity, angularSpeed);
+            }
         }
+    }
+
+    private static Vector3 GetIdealLinearVelocity(Vector3 currentPos, Vector3 targetPos)
+    {
+        Vector3 deltaPosition = GetPositionError(currentPos, targetPos);
+        Vector3 targetVelocity = deltaPosition / Time.deltaTime;
+        return targetVelocity;
+    }
+
+    private static Vector3 GetIdealAngularVelocity(Quaternion currentRot, Quaternion targetRot)
+    {
+        Quaternion rotationDir = targetRot * Quaternion.Inverse(currentRot);
+        float angleInDegrees;
+        Vector3 rotationAxis;
+        rotationDir.ToAngleAxis(out angleInDegrees, out rotationAxis);
+        rotationAxis.Normalize();
+        Vector3 angularDifference = rotationAxis * angleInDegrees * Mathf.Deg2Rad;
+        Vector3 angularSpeed = angularDifference / Time.deltaTime;
+        return angularSpeed;
     }
 
     public static Vector3 GetPositionError(Vector3 current, Vector3 target)
