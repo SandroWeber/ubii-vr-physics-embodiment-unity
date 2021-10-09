@@ -35,7 +35,7 @@ public class IKTargetsManager : MonoBehaviour
     public Vector3 manualPositionOffset = new Vector3();
 
     private PseudoTopicData pseudoTopicdata = null;
-    private UbiiClient ubiiClient = null;
+    private UbiiNode ubiiNode = null;
     private bool running = false;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
@@ -43,22 +43,22 @@ public class IKTargetsManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ubiiClient = FindObjectOfType<UbiiClient>();
+        ubiiNode = FindObjectOfType<UbiiNode>();
         pseudoTopicdata = PseudoTopicData.Instance;
     }
 
     void OnEnable()
     {
-        UbiiClient.OnInitialized += OnUbiiClientInitialized;
+        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
     void OnDisable()
     {
-        UbiiClient.OnInitialized -= OnUbiiClientInitialized;
+        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         running = false;
     }
 
-    void OnUbiiClientInitialized()
+    void OnUbiiNodeInitialized()
     {
         running = true;
         secondsBetweenPublish = 1f / (float)publishFrequency;
@@ -96,7 +96,7 @@ public class IKTargetsManager : MonoBehaviour
 
     public string GetTopicIKTargetPose(IK_TARGET ikTarget)
     {
-        return "/" + ubiiClient.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
+        return "/" + ubiiNode.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
     }
 
     private IEnumerator PublishIKTargetsCoroutine(float waitTime)
@@ -112,7 +112,9 @@ public class IKTargetsManager : MonoBehaviour
 
     private void PublishTopicDataIKTargets()
     {
-        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
+        //Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
+
+        Ubii.TopicData.TopicDataRecordList recordList = new Ubii.TopicData.TopicDataRecordList();
 
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
@@ -128,7 +130,7 @@ public class IKTargetsManager : MonoBehaviour
                 ikTargetTransform = animationManager.GetEmulatedIKTargetTransform(ikTarget);
             }
             
-            topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
+            recordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
             {
                 Topic = topic,
                 Pose3D = new Ubii.DataStructure.Pose3D
@@ -146,7 +148,7 @@ public class IKTargetsManager : MonoBehaviour
             });
         }
 
-        ubiiClient.Publish(topicData);
+        ubiiNode.Publish(recordList);
     }
 
     private void PublishPseudoTopicData()

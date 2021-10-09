@@ -33,7 +33,7 @@ public class AvatarPhysicsManager : MonoBehaviour
     public bool resetVelocityCalculation = true;
     public int publishFrequency = 30;
 
-    private UbiiClient ubiiClient = null;
+    private UbiiNode ubiiNode = null;
     private bool initialized;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
@@ -46,23 +46,23 @@ public class AvatarPhysicsManager : MonoBehaviour
 
     void Start()
     {
-        ubiiClient = FindObjectOfType<UbiiClient>();
+        ubiiNode = FindObjectOfType<UbiiNode>();
         InitializeBodyStructures();
         OnInitialized();
     }
 
     void OnEnable()
     {
-        UbiiClient.OnInitialized += OnUbiiClientInitialized;
+        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
     void OnDisable()
     {
-        UbiiClient.OnInitialized -= OnUbiiClientInitialized;
+        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         ubiiReady = false;
     }
 
-    void OnUbiiClientInitialized()
+    void OnUbiiNodeInitialized()
     {
         secondsBetweenPublish = 1f / (float)publishFrequency;
         tLastPublish = Time.time;
@@ -187,13 +187,14 @@ public class AvatarPhysicsManager : MonoBehaviour
 
     private void PublishCurrentPosesPerBone()
     {
-        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
+        //Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
+        Ubii.TopicData.TopicDataRecordList recordList = new Ubii.TopicData.TopicDataRecordList();
         foreach (KeyValuePair<HumanBodyBones, Rigidbody> entry in mapBone2Rigidbody)
         {
             Transform currentTransform = entry.Value.transform;
             string topic = GetTopicCurrentPose(entry.Key);
             
-            topicData.TopicDataRecordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
+            recordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
             {
                 Topic = topic,
                 Pose3D = new Ubii.DataStructure.Pose3D
@@ -211,22 +212,26 @@ public class AvatarPhysicsManager : MonoBehaviour
             });
         }
 
-        ubiiClient.Publish(topicData);
+        ubiiNode.Publish(recordList);
     }
 
     private void PublishCurrentPosesList()
     {
-        Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { 
+        /*Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { 
             TopicDataRecord = new Ubii.TopicData.TopicDataRecord {
                 Topic = GetTopicCurrentPoseList(),
                 Object3DList = new Ubii.DataStructure.Object3DList()
             } 
+        };*/
+        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord {
+            Topic = GetTopicCurrentPoseList(),
+            Object3DList = new Ubii.DataStructure.Object3DList()
         };
         foreach (KeyValuePair<HumanBodyBones, Rigidbody> entry in mapBone2Rigidbody)
         {
             Transform currentTransform = entry.Value.transform;
             
-            topicData.TopicDataRecord.Object3DList.Elements.Add(new Ubii.DataStructure.Object3D
+            record.Object3DList.Elements.Add(new Ubii.DataStructure.Object3D
             {
                 Id = entry.Key.ToString(),
                 Pose = new Ubii.DataStructure.Pose3D
@@ -244,17 +249,17 @@ public class AvatarPhysicsManager : MonoBehaviour
             });
         }
 
-        ubiiClient.Publish(topicData);
+        ubiiNode.Publish(record);
     }
 
     public string GetTopicCurrentPose(HumanBodyBones bone)
     {
-        return "/" + ubiiClient.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/" + bone.ToString();
+        return "/" + ubiiNode.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/" + bone.ToString();
     }
 
     public string GetTopicCurrentPoseList()
     {
-        return "/" + ubiiClient.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/list";
+        return "/" + ubiiNode.GetID() + TOPIC_PREFIX_CURRENT_POSE + "/list";
     }
 
     #region getters

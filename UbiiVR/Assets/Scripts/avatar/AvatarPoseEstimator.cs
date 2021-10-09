@@ -9,7 +9,7 @@ public class AvatarPoseEstimator : MonoBehaviour
 {
     public bool ikActive = true;
     public bool useTopicData = true;
-    public UbiiClient ubiiClient = null;
+    public UbiiNode ubiiNode = null;
     public IKTargetsManager ikTargetsManager = null;
     public VRTrackingManager vrTrackingManager;
     public TrackingHandManager trackingHandManager;
@@ -27,27 +27,30 @@ public class AvatarPoseEstimator : MonoBehaviour
     private bool initialized = false;
     private PseudoTopicData topicData = null;
 
+    private SubscriptionToken tokenIkTargetPose;
+
     void Start()
     {
         animator = GetComponent<Animator>();
         topicData = PseudoTopicData.Instance;
+        if (ubiiNode == null) ubiiNode = FindObjectOfType<UbiiNode>();
     }
 
     void OnEnable()
     {
         VRTrackingManager.OnInitialized += InitInternalIKTargets;
-        UbiiClient.OnInitialized += OnUbiiClientInitialized;
+        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
     void OnDisable()
     {
         VRTrackingManager.OnInitialized -= InitInternalIKTargets;
-        UbiiClient.OnInitialized -= OnUbiiClientInitialized;
+        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
     }
 
-    void OnUbiiClientInitialized()
+    void OnUbiiNodeInitialized()
     {
-        if (useTopicData && ubiiClient != null && ikTargetsManager != null)
+        if (useTopicData && ubiiNode != null && ikTargetsManager != null)
         {
             InitIKTopics();
         }
@@ -63,7 +66,7 @@ public class AvatarPoseEstimator : MonoBehaviour
                 position = new Vector3(),
                 rotation = new Quaternion()
             });
-            await ubiiClient.Subscribe(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
+            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
                 pose.position.Set(
                     (float)record.Pose3D.Position.X,

@@ -13,32 +13,33 @@ public class AvatarForceControl : MonoBehaviour
     public AvatarPhysicsEstimator avatarPhysicsEstimator = null;
 
     private Dictionary<HumanBodyBones, UbiiRigidbodyForces> mapBone2TargetVelocities = new Dictionary<HumanBodyBones, UbiiRigidbodyForces>();
-    private UbiiClient ubiiClient = null;
+    private UbiiNode ubiiNode = null;
     private bool ubiiReady = false, physicsReady = false;
+    private SubscriptionToken tokenTargetVelocities;
 
     void Start()
     {
-        ubiiClient = FindObjectOfType<UbiiClient>();
+        ubiiNode = FindObjectOfType<UbiiNode>();
     }
 
     void OnEnable()
     {
-        UbiiClient.OnInitialized += OnUbiiClientInitialized;
+        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
         AvatarPhysicsManager.OnInitialized += OnPhysicsManagerInitialized;
     }
 
     void OnDisable()
     {
-        UbiiClient.OnInitialized -= OnUbiiClientInitialized;
+        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         AvatarPhysicsManager.OnInitialized -= OnPhysicsManagerInitialized;
 
         ubiiReady = false;
         physicsReady = false;
     }
 
-    async void OnUbiiClientInitialized()
+    async void OnUbiiNodeInitialized()
     {
-        await ubiiClient.Subscribe(avatarPhysicsEstimator.GetTopicTargetVelocities(), (Ubii.TopicData.TopicDataRecord record) => {
+        tokenTargetVelocities = await ubiiNode.SubscribeTopic(avatarPhysicsEstimator.GetTopicTargetVelocities(), (Ubii.TopicData.TopicDataRecord record) => {
             for (int i=0; i < record.Object3DList.Elements.Count; i++)
             {
                 string boneString = record.Object3DList.Elements[i].Id;
