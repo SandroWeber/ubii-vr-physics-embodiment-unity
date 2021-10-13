@@ -1,0 +1,18 @@
+{
+    "head": {
+        "boneName": "mixamorig:Head",
+        "bone2ikTargetOffset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "lookAt": {
+        "boneName": "mixamorig:Head",
+        "bone2ikTargetOffset": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    }
+}
