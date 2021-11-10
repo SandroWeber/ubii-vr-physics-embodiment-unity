@@ -12,6 +12,9 @@ public class AvatarPhysicsEstimator : MonoBehaviour
     public AvatarPhysicsManager avatarPhysicsManager = null;
     public AvatarForceControl avatarForceControl = null;
     public int publishFrequency = 15;
+
+    public bool publishLinearVelocity = true;
+    public bool publishAngularVelocity = true;
     [Tooltip("For target velocities of AvatarForceControl, don't use topics but directly set them")]
     public bool setVelocitiesDirectly = true;
     public Vector2 scalingFactorsVelocities = new Vector2(1, 1);
@@ -97,15 +100,18 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     async void InitCurrentPoseListTopic()
     {
-        tokenCurrentPoseList = await ubiiNode.SubscribeTopic(avatarPhysicsManager.GetTopicCurrentPoseList(), (Ubii.TopicData.TopicDataRecord record) => {
+        tokenCurrentPoseList = await ubiiNode.SubscribeTopic(avatarPhysicsManager.GetTopicCurrentPoseList(), (Ubii.TopicData.TopicDataRecord record) =>
+        {
             Google.Protobuf.Collections.RepeatedField<Ubii.DataStructure.Object3D> objects = record.Object3DList.Elements;
-            for (int i=0; i < record.Object3DList.Elements.Count; i++)
+            for (int i = 0; i < record.Object3DList.Elements.Count; i++)
             {
                 string boneString = record.Object3DList.Elements[i].Id;
                 HumanBodyBones bone;
-                if (HumanBodyBones.TryParse(boneString, out bone)) {
+                if (HumanBodyBones.TryParse(boneString, out bone))
+                {
                     Ubii.DataStructure.Pose3D pose = record.Object3DList.Elements[i].Pose;
-                    UbiiPose3D newMapPose = new UbiiPose3D {
+                    UbiiPose3D newMapPose = new UbiiPose3D
+                    {
                         position = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
                         rotation = new Quaternion((float)pose.Quaternion.X, (float)pose.Quaternion.Y, (float)pose.Quaternion.Z, (float)pose.Quaternion.W)
                     };
@@ -139,26 +145,27 @@ public class AvatarPhysicsEstimator : MonoBehaviour
                 float tNow = Time.time;
                 if (tNow >= tLastPublish + secondsBetweenPublish)
                 {
-                    PublishTopicDataForces();
+                    PublishIdealVelocities();
                     tLastPublish = tNow;
                 }
             }
         }
     }
 
-    private void PublishTopicDataForces()
+    private void PublishIdealVelocities()
     {
         /*Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecord = new Ubii.TopicData.TopicDataRecord {
             Topic = GetTopicTargetVelocities(),
             Object3DList = new Ubii.DataStructure.Object3DList()
         } };*/
 
-        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord {
+        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord
+        {
             Topic = GetTopicTargetVelocities(),
             Object3DList = new Ubii.DataStructure.Object3DList()
         };
 
-        foreach(KeyValuePair<HumanBodyBones, Transform> entry in mapBone2TargetTransform)
+        foreach (KeyValuePair<HumanBodyBones, Transform> entry in mapBone2TargetTransform)
         {
             HumanBodyBones bone = entry.Key;
             Transform targetTransform = entry.Value;
@@ -169,21 +176,30 @@ public class AvatarPhysicsEstimator : MonoBehaviour
                 Vector3 linearVelocity = scalingFactorsVelocities.x * GetIdealLinearVelocity(currentPose.position, targetTransform.position + manualPositionOffset);
                 Vector3 angularSpeed = scalingFactorsVelocities.y * GetIdealAngularVelocity(currentPose.rotation, targetTransform.rotation);
 
-                record.Object3DList.Elements.Add(new Ubii.DataStructure.Object3D { 
+                Ubii.DataStructure.Object3D ubiiObject3D = new Ubii.DataStructure.Object3D
+                {
                     Id = bone.ToString(),
-                    Pose = new Ubii.DataStructure.Pose3D
+                    Pose = new Ubii.DataStructure.Pose3D { }
+                };
+                if (this.publishLinearVelocity)
+                {
+                    ubiiObject3D.Pose.Position = new Ubii.DataStructure.Vector3
                     {
-                        Position = new Ubii.DataStructure.Vector3 { 
-                            X = linearVelocity.x,
-                            Y = linearVelocity.y,
-                            Z = linearVelocity.z },
-                        Euler = new Ubii.DataStructure.Vector3 {
-                            X = angularSpeed.x,
-                            Y = angularSpeed.y,
-                            Z = angularSpeed.z
-                        }
-                    }
-                });
+                        X = linearVelocity.x,
+                        Y = linearVelocity.y,
+                        Z = linearVelocity.z
+                    };
+                }
+                if (this.publishAngularVelocity)
+                {
+                    ubiiObject3D.Pose.Euler = new Ubii.DataStructure.Vector3
+                    {
+                        X = angularSpeed.x,
+                        Y = angularSpeed.y,
+                        Z = angularSpeed.z
+                    };
+                }
+                record.Object3DList.Elements.Add(ubiiObject3D);
             }
         }
 
@@ -192,7 +208,7 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     private void SetTargetVelocitiesDirectly()
     {
-        foreach(KeyValuePair<HumanBodyBones, Transform> entry in mapBone2TargetTransform)
+        foreach (KeyValuePair<HumanBodyBones, Transform> entry in mapBone2TargetTransform)
         {
             HumanBodyBones bone = entry.Key;
             Transform targetTransform = entry.Value;
@@ -202,7 +218,7 @@ public class AvatarPhysicsEstimator : MonoBehaviour
             {
                 Vector3 linearVelocity = scalingFactorsVelocities.x * GetIdealLinearVelocity(currentPose.position, targetTransform.position + manualPositionOffset);
                 Vector3 angularSpeed = scalingFactorsVelocities.y * GetIdealAngularVelocity(currentPose.rotation, targetTransform.rotation);
-    
+
                 avatarForceControl.SetTargetVelocity(bone, linearVelocity, angularSpeed);
             }
         }
