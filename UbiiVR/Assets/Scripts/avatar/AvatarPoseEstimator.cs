@@ -62,11 +62,13 @@ public class AvatarPoseEstimator : MonoBehaviour
         {
             GameObject ikTargetObject = new GameObject("IK-Target PoseEstimator " + ikTarget.ToString());
             mapIKTargetTransforms.Add(ikTarget, ikTargetObject.transform);
-            mapIKTarget2UbiiPose.Add(ikTarget, new UbiiPose3D {
+            mapIKTarget2UbiiPose.Add(ikTarget, new UbiiPose3D
+            {
                 position = new Vector3(),
                 rotation = new Quaternion()
             });
-            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) => {
+            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) =>
+            {
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
                 pose.position.Set(
                     (float)record.Pose3D.Position.X,
@@ -265,7 +267,8 @@ public class AvatarPoseEstimator : MonoBehaviour
     {
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            try {
+            try
+            {
                 mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(IKTargetsManager.GetTopicIKTargetPosition(ikTarget));
                 mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(IKTargetsManager.GetTopicIKTargetRotation(ikTarget));
             }

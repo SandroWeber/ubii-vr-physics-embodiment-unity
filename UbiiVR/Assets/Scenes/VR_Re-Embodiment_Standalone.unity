@@ -487,7 +487,6 @@ MonoBehaviour:
   useJoints: 0
   jointType: 1
   resetVelocityCalculation: 0
-  publishFrequency: 30
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -848,7 +847,7 @@ GameObject:
   - component: {fileID: 1262900924}
   - component: {fileID: 1262900923}
   m_Layer: 0
-  m_Name: ubii
+  m_Name: UbiiClientNode
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -866,12 +865,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22e950835de3e8f4ca36e81f776c62e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ip: localhost
-  port: 8101
   clientName: UbiiVR Embodiment Unity (all-in-one)
+  serviceConnectionMode: 0
+  topicDataConnectionMode: 0
   autoConnect: 1
   isDedicatedProcessingNode: 0
   publishDelay: 15
+  masterNodeAddress: localhost
+  portServiceZMQ: 8101
+  portServiceREST: 8102
 --- !u!4 &1262900924
 Transform:
   m_ObjectHideFlags: 0
@@ -1079,7 +1081,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 042afef95c9591a46bcece7bc7e827da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  debugUseMockIKTargets: 0
+  debugUseMockIKTargets: 1
   ikTargetOffsetViveControllerLeft:
     position: {x: -0.05, y: 0, z: -0.15}
     rotation: {x: 0, y: 0, z: 0.70710677, w: 0.70710677}
@@ -1215,8 +1217,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   avatarPoseEstimation: {fileID: 1654170444}
-  avatarPhysicsManager: {fileID: 786728488}
-  avatarForceControl: {fileID: 919132148662895446}
+  ubiiComponentAvatarCurrentPose: {fileID: 919132148662895447}
+  ubiiComponentAvatarForceControl: {fileID: 919132148662895446}
   publishFrequency: 30
   publishLinearVelocity: 1
   publishAngularVelocity: 1
@@ -1278,3 +1280,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   avatarPhysicsManager: {fileID: 786728488}
   avatarPhysicsEstimator: {fileID: 1654170445}
+--- !u!114 &919132148662895447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148662895445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03c9d440ae0d83749ba07be59f5d38ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  publishFrequency: 30
+  avatarPhysicsManager: {fileID: 786728488}

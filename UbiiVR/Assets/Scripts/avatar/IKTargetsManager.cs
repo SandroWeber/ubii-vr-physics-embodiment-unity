@@ -6,20 +6,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf.Collections;
 
-struct UbiiPose3D {
+struct UbiiPose3D
+{
     public Vector3 position;
     public Quaternion rotation;
 }
 
 public enum IK_TARGET
 {
-        HEAD = 0,
-        VIEWING_DIRECTION,
-        HIP,
-        HAND_LEFT,
-        HAND_RIGHT,
-        FOOT_LEFT,
-        FOOT_RIGHT
+    HEAD = 0,
+    VIEWING_DIRECTION,
+    HIP,
+    HAND_LEFT,
+    HAND_RIGHT,
+    FOOT_LEFT,
+    FOOT_RIGHT
 }
 
 public class IKTargetsManager : MonoBehaviour
@@ -43,12 +44,12 @@ public class IKTargetsManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        ubiiNode = FindObjectOfType<UbiiNode>();
         pseudoTopicdata = PseudoTopicData.Instance;
     }
 
     void OnEnable()
     {
+        ubiiNode = FindObjectOfType<UbiiNode>();
         UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
@@ -99,17 +100,6 @@ public class IKTargetsManager : MonoBehaviour
         return "/" + ubiiNode.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
     }
 
-    private IEnumerator PublishIKTargetsCoroutine(float waitTime)
-    {
-        while (running)
-        {
-            PublishTopicDataIKTargets();
-
-            yield return new WaitForSeconds(waitTime);
-            Debug.Log("running: " + running);
-        }
-    }
-
     private void PublishTopicDataIKTargets()
     {
         //Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecordList = new Ubii.TopicData.TopicDataRecordList() };
@@ -129,21 +119,25 @@ public class IKTargetsManager : MonoBehaviour
             {
                 ikTargetTransform = animationManager.GetEmulatedIKTargetTransform(ikTarget);
             }
-            
+
             recordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
             {
                 Topic = topic,
                 Pose3D = new Ubii.DataStructure.Pose3D
                 {
-                    Position = new Ubii.DataStructure.Vector3 { 
+                    Position = new Ubii.DataStructure.Vector3
+                    {
                         X = ikTargetTransform.position.x + manualPositionOffset.x,
                         Y = ikTargetTransform.position.y + manualPositionOffset.y,
-                        Z = ikTargetTransform.position.z + manualPositionOffset.z },
-                    Quaternion = new Ubii.DataStructure.Quaternion {
+                        Z = ikTargetTransform.position.z + manualPositionOffset.z
+                    },
+                    Quaternion = new Ubii.DataStructure.Quaternion
+                    {
                         X = ikTargetTransform.rotation.x,
                         Y = ikTargetTransform.rotation.y,
                         Z = ikTargetTransform.rotation.z,
-                        W = ikTargetTransform.rotation.w }
+                        W = ikTargetTransform.rotation.w
+                    }
                 }
             });
         }
@@ -153,16 +147,13 @@ public class IKTargetsManager : MonoBehaviour
 
     private void PublishPseudoTopicData()
     {
-        //Debug.Log("PseudoIKTargetsManager.Update()");
         if (vrTrackingManager.IsReady())
         {
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
                 string partName = GetIKTargetBodyPartString(ikTarget);
                 string topicPos = TOPIC_PREFIX_IK_TARGET_POSITION + "/" + partName;
-                //Debug.Log(topicPos);
                 string topicRot = TOPIC_PREFIX_IK_TARGET_ROTATION + "/" + partName;
-                //Debug.Log(topicRot);
                 Transform ikTargetTransform = vrTrackingManager.GetIKTargetTransform(ikTarget);
                 pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
                 pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
@@ -173,9 +164,7 @@ public class IKTargetsManager : MonoBehaviour
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
                 string topicPos = GetTopicIKTargetPosition(ikTarget);
-                //Debug.Log(topicPos);
                 string topicRot = GetTopicIKTargetRotation(ikTarget);
-                //Debug.Log(topicRot);
                 Transform ikTargetTransform = animationManager.GetEmulatedIKTargetTransform(ikTarget);
                 pseudoTopicdata.SetVector3(topicPos, ikTargetTransform.position);
                 pseudoTopicdata.SetQuaternion(topicRot, ikTargetTransform.rotation);
