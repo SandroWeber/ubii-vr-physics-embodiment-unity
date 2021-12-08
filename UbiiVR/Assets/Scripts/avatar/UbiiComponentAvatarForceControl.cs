@@ -19,6 +19,8 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
     private bool ubiiReady = false, physicsReady = false;
     private SubscriptionToken tokenTargetVelocities;
 
+    private Ubii.Devices.Component ubiiSpecs = null;
+
     void Start()
     {
     }
@@ -46,7 +48,17 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
 
     async void OnUbiiNodeInitialized()
     {
-        tokenTargetVelocities = await ubiiNode.SubscribeTopic(GetTopicTargetVelocities(), (Ubii.TopicData.TopicDataRecord record) =>
+        ubiiSpecs = new Ubii.Devices.Component
+        {
+            Name = "Unity Physical Avatar - Apply Velocities",
+            Description = "Allows to apply linear and angular velocities by subscribing to a Object3DList. Object3D elements field 'Id' should be bone string equaling one of UnityEngine.HumanBodyBones (to be change to .json config). Object3D.Pose.Position equals linear velocity and Object3D.Pose.Euler equals angular velocity to be applied.",
+            MessageFormat = "ubii.dataStructure.Object3DList",
+            IoType = Ubii.Devices.Component.Types.IOType.Subscriber,
+            Topic = GetTopicTargetVelocities()
+        };
+        ubiiSpecs.Tags.AddRange(new string[] { "avatar", "bones", "control", "velocity", "linear", "angular" });
+
+        tokenTargetVelocities = await ubiiNode.SubscribeTopic(this.ubiiSpecs.Topic, (Ubii.TopicData.TopicDataRecord record) =>
         {
             for (int i = 0; i < record.Object3DList.Elements.Count; i++)
             {

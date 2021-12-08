@@ -15,6 +15,7 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
     private bool ubiiReady = false, physicsReady = false;
+    private Ubii.Devices.Component ubiiSpecs = null;
 
     void Start()
     {
@@ -22,6 +23,7 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
 
     void OnEnable()
     {
+
         ubiiNode = FindObjectOfType<UbiiNode>();
 
         UbiiNode.OnInitialized += OnUbiiInitialized;
@@ -43,6 +45,16 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
 
     void OnUbiiInitialized()
     {
+        ubiiSpecs = new Ubii.Devices.Component
+        {
+            Name = "Unity Physical Avatar - Current Position and Orientation",
+            Description = "Publishes current avatars bone poses as Object3DList. Object3D.Id will be one of UnityEngine.HumanBodyBones (to be changed to .json config). Position and Quaternion also set reflecting current Rigidbody transform.",
+            MessageFormat = "ubii.dataStructure.Object3DList",
+            IoType = Ubii.Devices.Component.Types.IOType.Publisher,
+            Topic = GetTopicCurrentPoseList()
+        };
+        ubiiSpecs.Tags.AddRange(new string[] { "avatar", "bones", "pose", "position", "orientation", "quaternion" });
+
         secondsBetweenPublish = 1f / (float)publishFrequency;
         tLastPublish = Time.time;
         ubiiReady = true;
@@ -65,7 +77,7 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
     {
         Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord
         {
-            Topic = GetTopicCurrentPoseList(),
+            Topic = this.ubiiSpecs.Topic,
             Object3DList = new Ubii.DataStructure.Object3DList()
         };
         Dictionary<HumanBodyBones, Rigidbody> mapBone2Rigidbody = avatarPhysicsManager.GetMapBone2Rigidbody();
