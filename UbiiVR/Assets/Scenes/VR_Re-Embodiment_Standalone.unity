@@ -1104,11 +1104,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b07740b14e7e73b4da4c0ae00cc1c346, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  useAnimation: 1
   usePseudoTopicData: 0
-  publishFrequency: 30
   vrTrackingManager: {fileID: 1472075940}
   animationManager: {fileID: 1472075937}
   manualPositionOffset: {x: 0, y: 0, z: -1}
+--- !u!114 &1472075943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1472075936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc4b40af3616f4c4284c88d36a55ffee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  publishFrequency: 30
+  ikTargetsManager: {fileID: 1472075941}
 --- !u!1001 &1654170443
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1253,7 +1267,7 @@ MonoBehaviour:
   ikActive: 1
   useTopicData: 1
   ubiiNode: {fileID: 1262900923}
-  ikTargetsManager: {fileID: 1472075941}
+  ubiiComponentIkTargets: {fileID: 1472075943}
   vrTrackingManager: {fileID: 1472075940}
   trackingHandManager: {fileID: 0}
   manualBodyOffset:

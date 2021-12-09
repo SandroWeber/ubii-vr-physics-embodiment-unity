@@ -1,8 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Ubii.TopicData;
+
+public struct UbiiPose3D
+{
+    public Vector3 position;
+    public Quaternion rotation;
+}
 
 [RequireComponent(typeof(Animator))]
 public class AvatarPoseEstimator : MonoBehaviour
@@ -10,7 +14,7 @@ public class AvatarPoseEstimator : MonoBehaviour
     public bool ikActive = true;
     public bool useTopicData = true;
     public UbiiNode ubiiNode = null;
-    public IKTargetsManager ikTargetsManager = null;
+    public UbiiComponentIkTargets ubiiComponentIkTargets = null;
     public VRTrackingManager vrTrackingManager;
     public TrackingHandManager trackingHandManager;
     public Pose manualBodyOffset;
@@ -25,14 +29,12 @@ public class AvatarPoseEstimator : MonoBehaviour
     private Queue<Vector3> groundCenterTrajectory = new Queue<Vector3>();
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
-    private PseudoTopicData topicData = null;
 
     private SubscriptionToken tokenIkTargetPose;
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        topicData = PseudoTopicData.Instance;
         if (ubiiNode == null) ubiiNode = FindObjectOfType<UbiiNode>();
     }
 
@@ -50,7 +52,7 @@ public class AvatarPoseEstimator : MonoBehaviour
 
     void OnUbiiNodeInitialized()
     {
-        if (useTopicData && ubiiNode != null && ikTargetsManager != null)
+        if (useTopicData && ubiiNode != null && ubiiComponentIkTargets != null)
         {
             InitIKTopics();
         }
@@ -67,7 +69,7 @@ public class AvatarPoseEstimator : MonoBehaviour
                 position = new Vector3(),
                 rotation = new Quaternion()
             });
-            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ikTargetsManager.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) =>
+            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ubiiComponentIkTargets.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) =>
             {
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
                 pose.position.Set(
@@ -260,22 +262,6 @@ public class AvatarPoseEstimator : MonoBehaviour
         {
             HumanBodyBones bone = (HumanBodyBones)i;
             this.animator.GetBoneTransform(bone).rotation = trackingHandManager.GetRemotePoseTarget(bone).rotation;
-        }
-    }
-
-    private void UpdateFromPseudoTopicData()
-    {
-        foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
-        {
-            try
-            {
-                mapIKTargetTransforms[ikTarget].position = topicData.GetVector3(IKTargetsManager.GetTopicIKTargetPosition(ikTarget));
-                mapIKTargetTransforms[ikTarget].rotation = topicData.GetQuaternion(IKTargetsManager.GetTopicIKTargetRotation(ikTarget));
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(exception.ToString());
-            }
         }
     }
 }
