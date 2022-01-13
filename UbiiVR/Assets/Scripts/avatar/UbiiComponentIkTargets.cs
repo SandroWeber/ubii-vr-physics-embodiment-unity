@@ -3,17 +3,21 @@ using System;
 
 public class UbiiComponentIkTargets : MonoBehaviour
 {
-    static string TOPIC_PREFIX_IK_TARGET_POSE = "/avatar/ik_target/pose";
+    static string TOPIC_SUFFIX_IK_TARGETS = "/avatar/ik_targets";
+    static string NAME = "Unity Physical Avatar - User IK Targets";
+    static string DESCRIPTION = "Publishes IK Target Positions as Pose3D on individual topics for each target.";
+    static string MESSAGE_FORMAT = "ubii.dataStructure.Pose3D";
+    static string[] TAGS = new string[] { "avatar", "user tracking", "IK targets" };
 
     public int publishFrequency = 15;
     public IKTargetsManager ikTargetsManager = null;
-    //public VRTrackingManager vrTrackingManager = null;
-    //public AnimationManager animationManager = null;
 
     private UbiiNode ubiiNode = null;
     private bool ubiiReady = false;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
+
+    private Ubii.Devices.Component ubiiSpecs = null;
 
     // Start is called before the first frame update
     void Start()
@@ -57,25 +61,27 @@ public class UbiiComponentIkTargets : MonoBehaviour
         return ikTarget.ToString().ToLower();
     }
 
-    public string GetTopicIKTargetPose(IK_TARGET ikTarget)
+    public string GetTopicIKTargets()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_PREFIX_IK_TARGET_POSE + "/" + GetIKTargetBodyPartString(ikTarget);
+        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_IK_TARGETS;
     }
 
     private void PublishTopicDataIKTargets()
     {
-        Ubii.TopicData.TopicDataRecordList recordList = new Ubii.TopicData.TopicDataRecordList();
+        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord {
+            Topic = GetTopicIKTargets(),
+            Object3DList = new Ubii.DataStructure.Object3DList()
+        };
 
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
-            string topic = GetTopicIKTargetPose(ikTarget);
-
             Vector3 ikTargetPosition = ikTargetsManager.GetIkTargetPosition(ikTarget);
             Quaternion ikTargetRotation = ikTargetsManager.GetIkTargetRotation(ikTarget);
-            recordList.Elements.Add(new Ubii.TopicData.TopicDataRecord
+
+            record.Object3DList.Elements.Add(new Ubii.DataStructure.Object3D
             {
-                Topic = topic,
-                Pose3D = new Ubii.DataStructure.Pose3D
+                Id = ikTarget.ToString(),
+                Pose = new Ubii.DataStructure.Pose3D
                 {
                     Position = new Ubii.DataStructure.Vector3
                     {
@@ -94,6 +100,6 @@ public class UbiiComponentIkTargets : MonoBehaviour
             });
         }
 
-        ubiiNode.Publish(recordList);
+        ubiiNode.Publish(record);
     }
 }

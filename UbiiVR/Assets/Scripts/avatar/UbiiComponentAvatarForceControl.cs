@@ -10,6 +10,10 @@ struct UbiiRigidbodyForces
 public class UbiiComponentAvatarForceControl : MonoBehaviour
 {
     static string TOPIC_SUFFIX_TARGET_VELOCITIES = "/avatar/target_velocities";
+    static string NAME = "Unity Physical Avatar - Apply Velocities";
+    static string DESCRIPTION = "Allows to apply linear and angular velocities by publishing an Object3DList to this components topic. Object3D elements field 'Id' should be bone string equaling one of UnityEngine.HumanBodyBones (to be change to .json config). Object3D.Pose.Position equals linear velocity and Object3D.Pose.Euler equals angular velocity to be applied.";
+    static string MESSAGE_FORMAT = "ubii.dataStructure.Object3DList";
+    static string[] TAGS = new string[] { "avatar", "bones", "control", "velocity", "linear", "angular" };
 
     public AvatarPhysicsManager avatarPhysicsManager = null;
     public AvatarPhysicsEstimator avatarPhysicsEstimator = null;
@@ -50,13 +54,13 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
     {
         ubiiSpecs = new Ubii.Devices.Component
         {
-            Name = "Unity Physical Avatar - Apply Velocities",
-            Description = "Allows to apply linear and angular velocities by subscribing to a Object3DList. Object3D elements field 'Id' should be bone string equaling one of UnityEngine.HumanBodyBones (to be change to .json config). Object3D.Pose.Position equals linear velocity and Object3D.Pose.Euler equals angular velocity to be applied.",
-            MessageFormat = "ubii.dataStructure.Object3DList",
+            Name = NAME,
+            Description = DESCRIPTION,
+            MessageFormat = MESSAGE_FORMAT,
             IoType = Ubii.Devices.Component.Types.IOType.Subscriber,
             Topic = GetTopicTargetVelocities()
         };
-        ubiiSpecs.Tags.AddRange(new string[] { "avatar", "bones", "control", "velocity", "linear", "angular" });
+        ubiiSpecs.Tags.AddRange(TAGS);
 
         tokenTargetVelocities = await ubiiNode.SubscribeTopic(this.ubiiSpecs.Topic, (Ubii.TopicData.TopicDataRecord record) =>
         {

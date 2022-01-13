@@ -14,8 +14,11 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     public bool publishLinearVelocity = true;
     public bool publishAngularVelocity = true;
+
     [Tooltip("For target velocities of AvatarForceControl, don't use topics but directly set them")]
     public bool setVelocitiesDirectly = true;
+
+    [Tooltip("Scaling factors for linear (X) and angular (Y) output velocities")]
     public Vector2 scalingFactorsVelocities = new Vector2(1, 1);
     public Vector3 manualPositionOffset = new Vector3();
 

@@ -1105,7 +1105,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useAnimation: 1
-  usePseudoTopicData: 0
   vrTrackingManager: {fileID: 1472075940}
   animationManager: {fileID: 1472075937}
   manualPositionOffset: {x: 0, y: 0, z: -1}

@@ -69,21 +69,32 @@ public class AvatarPoseEstimator : MonoBehaviour
                 position = new Vector3(),
                 rotation = new Quaternion()
             });
-            tokenIkTargetPose = await ubiiNode.SubscribeTopic(ubiiComponentIkTargets.GetTopicIKTargetPose(ikTarget), (Ubii.TopicData.TopicDataRecord record) =>
-            {
-                UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
-                pose.position.Set(
-                    (float)record.Pose3D.Position.X,
-                    (float)record.Pose3D.Position.Y,
-                    (float)record.Pose3D.Position.Z);
-                pose.rotation.Set(
-                    (float)record.Pose3D.Quaternion.X,
-                    (float)record.Pose3D.Quaternion.Y,
-                    (float)record.Pose3D.Quaternion.Z,
-                    (float)record.Pose3D.Quaternion.W);
-                mapIKTarget2UbiiPose[ikTarget] = pose;
-            });
         }
+
+        tokenIkTargetPose = await ubiiNode.SubscribeTopic(ubiiComponentIkTargets.GetTopicIKTargets(), (Ubii.TopicData.TopicDataRecord record) =>
+        {
+            for (int i = 0; i < record.Object3DList.Elements.Count; i++)
+            {
+                string ikTargetString = record.Object3DList.Elements[i].Id;
+                Ubii.DataStructure.Pose3D pose3D = record.Object3DList.Elements[i].Pose;
+                IK_TARGET ikTarget;
+                if (IK_TARGET.TryParse(ikTargetString, out ikTarget))
+                {
+                    UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
+                    pose.position.Set(
+                        (float)pose3D.Position.X,
+                        (float)pose3D.Position.Y,
+                        (float)pose3D.Position.Z);
+                    pose.rotation.Set(
+                        (float)pose3D.Quaternion.X,
+                        (float)pose3D.Quaternion.Y,
+                        (float)pose3D.Quaternion.Z,
+                        (float)pose3D.Quaternion.W);
+                    mapIKTarget2UbiiPose[ikTarget] = pose;
+                }
+            }
+        });
+
         initialized = true;
     }
 
