@@ -112,6 +112,6 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
 
     public string GetTopicCurrentPoseList()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_CURRENT_POSE_LIST;
+        return "/" + ubiiNode.Id + TOPIC_SUFFIX_CURRENT_POSE_LIST;
     }
 }

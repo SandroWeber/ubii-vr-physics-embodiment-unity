@@ -83,7 +83,7 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
 
     public string GetTopicTargetVelocities()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_TARGET_VELOCITIES;
+        return "/" + ubiiNode.Id + TOPIC_SUFFIX_TARGET_VELOCITIES;
     }
 
     public void SetTargetVelocity(HumanBodyBones bone, Vector3 linear, Vector3 angular)
