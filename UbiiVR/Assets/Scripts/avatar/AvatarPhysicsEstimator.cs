@@ -258,11 +258,11 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     public string GetTopicTargetLinearVelocities()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_TARGET_LINEAR_VELOCITIES;
+        return "/" + ubiiNode.Id + TOPIC_SUFFIX_TARGET_LINEAR_VELOCITIES;
     }
 
     public string GetTopicTargetAngularVelocities()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_TARGET_ANGULAR_VELOCITIES;
+        return "/" + ubiiNode.Id + TOPIC_SUFFIX_TARGET_ANGULAR_VELOCITIES;
     }
 }

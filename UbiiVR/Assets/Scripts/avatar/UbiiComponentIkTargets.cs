@@ -63,7 +63,7 @@ public class UbiiComponentIkTargets : MonoBehaviour
 
     public string GetTopicIKTargets()
     {
-        return "/" + ubiiNode.GetID() + TOPIC_SUFFIX_IK_TARGETS;
+        return "/" + ubiiNode.Id + TOPIC_SUFFIX_IK_TARGETS;
     }
 
     private void PublishTopicDataIKTargets()

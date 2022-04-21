@@ -866,14 +866,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clientName: UbiiVR Embodiment Unity (all-in-one)
-  serviceConnectionMode: 0
-  topicDataConnectionMode: 0
+  serviceConnectionMode: 1
+  topicDataConnectionMode: 1
   autoConnect: 1
   isDedicatedProcessingNode: 0
-  publishDelay: 15
-  masterNodeAddress: localhost
-  portServiceZMQ: 8101
-  portServiceREST: 8102
+  publishDelay: 30
+  serviceAddress: localhost:8102/services/binary
+  topicDataAddress: localhost:8104
 --- !u!4 &1262900924
 Transform:
   m_ObjectHideFlags: 0
