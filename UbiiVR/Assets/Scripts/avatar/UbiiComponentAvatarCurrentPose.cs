@@ -16,6 +16,11 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
     private float secondsBetweenPublish = 0;
     private bool ubiiReady = false, physicsReady = false;
     private Ubii.Devices.Component ubiiSpecs = null;
+    public Ubii.Devices.Component UbiiSpecs 
+    {
+        get { return this.ubiiSpecs; }
+        set { this.ubiiSpecs = value; }
+    }
 
     void Start()
     {
@@ -26,13 +31,13 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
 
         ubiiNode = FindObjectOfType<UbiiNode>();
 
-        UbiiNode.OnInitialized += OnUbiiInitialized;
+        //UbiiNode.OnInitialized += OnUbiiInitialized;
         AvatarPhysicsManager.OnInitialized += OnPhysicsInitialized;
     }
 
     void OnDisable()
     {
-        UbiiNode.OnInitialized -= OnUbiiInitialized;
+        //UbiiNode.OnInitialized -= OnUbiiInitialized;
         AvatarPhysicsManager.OnInitialized -= OnPhysicsInitialized;
         physicsReady = false;
         ubiiReady = false;
@@ -43,7 +48,7 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
         physicsReady = true;
     }
 
-    void OnUbiiInitialized()
+    public void OnUbiiNodeInitialized()
     {
         ubiiSpecs = new Ubii.Devices.Component
         {

@@ -34,7 +34,7 @@ public class UbiiDeviceBodyTracking : MonoBehaviour
         this.componentIkTargets.OnUbiiNodeInitialized();
 
         this.ubiiSpecs = new Ubii.Devices.Device {
-            Name = "UnityAvatar Body Tracking",
+            Name = NAME,
             Description = DESCRIPTION,
             ClientId = this.ubiiNode.Id
         };
@@ -52,7 +52,6 @@ public class UbiiDeviceBodyTracking : MonoBehaviour
                 if (component.Topic == this.componentIkTargets.UbiiSpecs.Topic)
                 {
                     this.componentIkTargets.UbiiSpecs = component;
-                    Debug.Log(this.componentIkTargets.UbiiSpecs);
                 }
             }
         }

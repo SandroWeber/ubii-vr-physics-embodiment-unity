@@ -21,15 +21,8 @@ public class UbiiComponentIkTargets : MonoBehaviour
     private Ubii.Devices.Component ubiiSpecs = null;
     public Ubii.Devices.Component UbiiSpecs 
     {
-        get 
-        {
-            return this.ubiiSpecs;
-        }
-
-        set
-        {
-            this.ubiiSpecs = value;
-        }
+        get { return this.ubiiSpecs; }
+        set { this.ubiiSpecs = value; }
     }
 
     // Start is called before the first frame update

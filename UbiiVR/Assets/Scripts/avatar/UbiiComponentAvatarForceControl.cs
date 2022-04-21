@@ -24,6 +24,11 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
     private SubscriptionToken tokenTargetVelocities;
 
     private Ubii.Devices.Component ubiiSpecs = null;
+    public Ubii.Devices.Component UbiiSpecs 
+    {
+        get { return this.ubiiSpecs; }
+        set { this.ubiiSpecs = value; }
+    }
 
     void Start()
     {
@@ -32,13 +37,13 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
     void OnEnable()
     {
         ubiiNode = FindObjectOfType<UbiiNode>();
-        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
+        //UbiiNode.OnInitialized += OnUbiiNodeInitialized;
         AvatarPhysicsManager.OnInitialized += OnPhysicsManagerInitialized;
     }
 
     void OnDisable()
     {
-        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
+        //UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         AvatarPhysicsManager.OnInitialized -= OnPhysicsManagerInitialized;
 
         ubiiReady = false;
@@ -50,7 +55,7 @@ public class UbiiComponentAvatarForceControl : MonoBehaviour
         physicsReady = true;
     }
 
-    async void OnUbiiNodeInitialized()
+    public async void OnUbiiNodeInitialized()
     {
         ubiiSpecs = new Ubii.Devices.Component
         {
