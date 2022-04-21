@@ -8,6 +8,7 @@ public class UbiiComponentIkTargets : MonoBehaviour
     static string DESCRIPTION = "Publishes IK Target Positions as Pose3D on individual topics for each target.";
     static string MESSAGE_FORMAT = "ubii.dataStructure.Object3DList";
     static string[] TAGS = new string[] { "avatar", "user tracking", "IK targets" };
+    static Ubii.Devices.Component.Types.IOType IO_TYPE = Ubii.Devices.Component.Types.IOType.Publisher;
 
     public int publishFrequency = 15;
     public IKTargetsManager ikTargetsManager = null;
@@ -18,6 +19,18 @@ public class UbiiComponentIkTargets : MonoBehaviour
     private float secondsBetweenPublish = 0;
 
     private Ubii.Devices.Component ubiiSpecs = null;
+    public Ubii.Devices.Component UbiiSpecs 
+    {
+        get 
+        {
+            return this.ubiiSpecs;
+        }
+
+        set
+        {
+            this.ubiiSpecs = value;
+        }
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -27,20 +40,13 @@ public class UbiiComponentIkTargets : MonoBehaviour
     void OnEnable()
     {
         ubiiNode = FindObjectOfType<UbiiNode>();
-        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
+        //UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
     void OnDisable()
     {
-        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
+        //UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         ubiiReady = false;
-    }
-
-    void OnUbiiNodeInitialized()
-    {
-        ubiiReady = true;
-        secondsBetweenPublish = 1f / (float)publishFrequency;
-        tLastPublish = Time.time;
     }
 
     void Update()
@@ -54,6 +60,23 @@ public class UbiiComponentIkTargets : MonoBehaviour
                 tLastPublish = tNow;
             }
         }
+    }
+
+    public void OnUbiiNodeInitialized()
+    {
+        this.ubiiSpecs = new Ubii.Devices.Component {
+            Name = NAME,
+            Description = DESCRIPTION,
+            MessageFormat = MESSAGE_FORMAT,
+            IoType = IO_TYPE,
+            Topic = this.GetTopicIKTargets()
+        };
+        this.ubiiSpecs.Tags.AddRange(TAGS);
+
+        ubiiReady = true;
+
+        secondsBetweenPublish = 1f / (float)publishFrequency;
+        tLastPublish = Time.time;
     }
 
     public static string GetIKTargetBodyPartString(IK_TARGET ikTarget)
