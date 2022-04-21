@@ -6,7 +6,7 @@ public class UbiiComponentIkTargets : MonoBehaviour
     static string TOPIC_SUFFIX_IK_TARGETS = "/avatar/ik_targets";
     static string NAME = "Unity Physical Avatar - User IK Targets";
     static string DESCRIPTION = "Publishes IK Target Positions as Pose3D on individual topics for each target.";
-    static string MESSAGE_FORMAT = "ubii.dataStructure.Pose3D";
+    static string MESSAGE_FORMAT = "ubii.dataStructure.Object3DList";
     static string[] TAGS = new string[] { "avatar", "user tracking", "IK targets" };
 
     public int publishFrequency = 15;
@@ -68,7 +68,8 @@ public class UbiiComponentIkTargets : MonoBehaviour
 
     private void PublishTopicDataIKTargets()
     {
-        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord {
+        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord
+        {
             Topic = GetTopicIKTargets(),
             Object3DList = new Ubii.DataStructure.Object3DList()
         };

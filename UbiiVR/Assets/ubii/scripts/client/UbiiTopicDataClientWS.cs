@@ -260,7 +260,6 @@ public class UbiiTopicDataClientWS : ITopicDataClient
                         Debug.LogError(ex.ToString());
                     }
                 }
-
                 receiveBufferCount = 0;
             }
         }
