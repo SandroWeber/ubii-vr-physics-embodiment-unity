@@ -1,48 +1,45 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+using Ubii.TopicData;
+
 public class AvatarPhysicsEstimator : MonoBehaviour
 {
-    static string TOPIC_SUFFIX_TARGET_LINEAR_VELOCITIES = "/avatar/target_linear_velocities";
-    static string TOPIC_SUFFIX_TARGET_ANGULAR_VELOCITIES = "/avatar/target_angular_velocities";
-
     public GameObject avatarPoseEstimation = null;
-    public UbiiComponentAvatarCurrentPose ubiiComponentAvatarCurrentPose = null;
-    public UbiiComponentAvatarForceControl ubiiComponentAvatarForceControl = null;
     public int publishFrequency = 15;
 
     public bool publishLinearVelocity = true;
     public bool publishAngularVelocity = true;
 
-    [Tooltip("For target velocities of AvatarForceControl, don't use topics but directly set them")]
-    public bool setVelocitiesDirectly = true;
-
     [Tooltip("Scaling factors for linear (X) and angular (Y) output velocities")]
     public Vector2 scalingFactorsVelocities = new Vector2(1, 1);
     public Vector3 manualPositionOffset = new Vector3();
 
-    private UbiiNode ubiiNode = null;
+    [Tooltip("For target velocities of AvatarForceControl, don't use topics but directly set them")]
+    public bool setVelocitiesDirectly = false;
+    public UbiiComponentAvatarForceControl ubiiComponentAvatarForceControl = null;
+
     private bool running = false;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
 
+    private Func<TopicDataRecord> GetCurrentPoses = null;
+    private Action<TopicDataRecord> PublishTargetVelocities = null;
+
     private Dictionary<HumanBodyBones, Transform> mapBone2TargetTransform = new Dictionary<HumanBodyBones, Transform>();
     private Dictionary<HumanBodyBones, UbiiPose3D> mapBone2CurrentPose = new Dictionary<HumanBodyBones, UbiiPose3D>();
 
-    private SubscriptionToken tokenCurrentPoseList;
-
     void OnEnable()
     {
-        ubiiNode = FindObjectOfType<UbiiNode>();
-        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
-
         InitBoneTargetTransforms();
+
+        secondsBetweenPublish = 1f / (float)publishFrequency;
+        tLastPublish = Time.time;
     }
 
     void OnDisable()
     {
-        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
         running = false;
     }
 
@@ -50,6 +47,8 @@ public class AvatarPhysicsEstimator : MonoBehaviour
     {
         if (running)
         {
+            this.SaveCurrentPosesToMap(this.GetCurrentPoses());
+
             if (setVelocitiesDirectly)
             {
                 SetTargetVelocitiesDirectly();
@@ -66,22 +65,16 @@ public class AvatarPhysicsEstimator : MonoBehaviour
         }
     }
 
-    public void StartProcessing(/*Func<Ubii.TopicData.TopicDataRecord> GetCurrentPoses, Action<Ubii.TopicData.TopicDataRecord> */)
+    public void StartProcessing(Func<TopicDataRecord> GetCurrentPoses, Action<TopicDataRecord> PublishTargetVelocities)
     {
+        this.GetCurrentPoses = GetCurrentPoses;
+        this.PublishTargetVelocities = PublishTargetVelocities;
         this.running = true;
     }
 
     public void StopProcessing()
     {
         this.running = false;
-    }
-
-    void OnUbiiNodeInitialized()
-    {
-        secondsBetweenPublish = 1f / (float)publishFrequency;
-        tLastPublish = Time.time;
-
-        InitCurrentPoseListTopic();
     }
 
     void InitBoneTargetTransforms()
@@ -127,46 +120,37 @@ public class AvatarPhysicsEstimator : MonoBehaviour
         }
     }
 
-    async void InitCurrentPoseListTopic()
+    private void SaveCurrentPosesToMap(TopicDataRecord record)
     {
-        tokenCurrentPoseList = await ubiiNode.SubscribeTopic(ubiiComponentAvatarCurrentPose.GetTopicCurrentPoseList(), (Ubii.TopicData.TopicDataRecord record) =>
+        Google.Protobuf.Collections.RepeatedField<Ubii.DataStructure.Object3D> objects = record.Object3DList.Elements;
+        for (int i = 0; i < objects.Count; i++)
         {
-            Google.Protobuf.Collections.RepeatedField<Ubii.DataStructure.Object3D> objects = record.Object3DList.Elements;
-            for (int i = 0; i < record.Object3DList.Elements.Count; i++)
+            string boneString = objects[i].Id;
+            HumanBodyBones bone;
+            if (HumanBodyBones.TryParse(boneString, out bone))
             {
-                string boneString = record.Object3DList.Elements[i].Id;
-                HumanBodyBones bone;
-                if (HumanBodyBones.TryParse(boneString, out bone))
+                Ubii.DataStructure.Pose3D pose = objects[i].Pose;
+                UbiiPose3D newMapPose = new UbiiPose3D
                 {
-                    Ubii.DataStructure.Pose3D pose = record.Object3DList.Elements[i].Pose;
-                    UbiiPose3D newMapPose = new UbiiPose3D
-                    {
-                        position = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
-                        rotation = new Quaternion((float)pose.Quaternion.X, (float)pose.Quaternion.Y, (float)pose.Quaternion.Z, (float)pose.Quaternion.W)
-                    };
-                    if (mapBone2CurrentPose.ContainsKey(bone))
-                    {
-                        mapBone2CurrentPose[bone] = newMapPose;
-                    }
-                    else
-                    {
-                        mapBone2CurrentPose.Add(bone, newMapPose);
-                    }
+                    position = new Vector3((float)pose.Position.X, (float)pose.Position.Y, (float)pose.Position.Z),
+                    rotation = new Quaternion((float)pose.Quaternion.X, (float)pose.Quaternion.Y, (float)pose.Quaternion.Z, (float)pose.Quaternion.W)
+                };
+                if (mapBone2CurrentPose.ContainsKey(bone))
+                {
+                    mapBone2CurrentPose[bone] = newMapPose;
+                }
+                else
+                {
+                    mapBone2CurrentPose.Add(bone, newMapPose);
                 }
             }
-        });
+        }
     }
 
     private void PublishIdealVelocities()
     {
-        /*Ubii.TopicData.TopicData topicData = new Ubii.TopicData.TopicData { TopicDataRecord = new Ubii.TopicData.TopicDataRecord {
-            Topic = GetTopicTargetVelocities(),
-            Object3DList = new Ubii.DataStructure.Object3DList()
-        } };*/
-
-        Ubii.TopicData.TopicDataRecord record = new Ubii.TopicData.TopicDataRecord
+        TopicDataRecord record = new TopicDataRecord
         {
-            Topic = ubiiComponentAvatarForceControl.GetTopicTargetVelocities(),
             Object3DList = new Ubii.DataStructure.Object3DList()
         };
 
@@ -208,7 +192,7 @@ public class AvatarPhysicsEstimator : MonoBehaviour
             }
         }
 
-        ubiiNode.Publish(record);
+        this.PublishTargetVelocities(record);
     }
 
     private void SetTargetVelocitiesDirectly()
@@ -258,15 +242,5 @@ public class AvatarPhysicsEstimator : MonoBehaviour
         Vector3 a = current.eulerAngles;
         Vector3 b = target.eulerAngles;
         return new Vector3(Mathf.DeltaAngle(a.x, b.x), Mathf.DeltaAngle(a.y, b.y), Mathf.DeltaAngle(a.z, b.z));
-    }
-
-    public string GetTopicTargetLinearVelocities()
-    {
-        return "/" + ubiiNode.Id + TOPIC_SUFFIX_TARGET_LINEAR_VELOCITIES;
-    }
-
-    public string GetTopicTargetAngularVelocities()
-    {
-        return "/" + ubiiNode.Id + TOPIC_SUFFIX_TARGET_ANGULAR_VELOCITIES;
     }
 }

@@ -18,7 +18,7 @@ public class UbiiProcModuleAvatarMotionControls : ProcessingModule
     {
         Debug.Log("### UbiiProcModuleAvatarMotionControls.Start()");
         this.avatarPoseEstimator.StartProcessing(this.dictInputGetters["ikTargets"]);
-        this.avatarPhysicsEstimator.StartProcessing();
+        this.avatarPhysicsEstimator.StartProcessing(this.dictInputGetters["avatarCurrentPoses"], this.dictOutputSetters["avatarTargetVelocities"]);
     }
 
     public override void OnHalted()

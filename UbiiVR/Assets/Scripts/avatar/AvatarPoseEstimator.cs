@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using System;
+
+using Ubii.TopicData;
 
 public struct UbiiPose3D
 {
@@ -30,9 +32,7 @@ public class AvatarPoseEstimator : MonoBehaviour
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
     private bool running = false;
-    private Func<Ubii.TopicData.TopicDataRecord> GetIkTargets = null;
-
-    private SubscriptionToken tokenIkTargets;
+    private Func<TopicDataRecord> GetIkTargets = null;
 
     void Start()
     {
@@ -61,7 +61,7 @@ public class AvatarPoseEstimator : MonoBehaviour
         }*/
     }
 
-    public void StartProcessing(Func<Ubii.TopicData.TopicDataRecord> GetIkTargets)
+    public void StartProcessing(Func<TopicDataRecord> GetIkTargets)
     {
         this.GetIkTargets = GetIkTargets;
         running = true;
@@ -89,7 +89,7 @@ public class AvatarPoseEstimator : MonoBehaviour
     }
 
     //TODO: intermediate map saving poses from topic data might not be necessary anymore, saves some complexity
-    private void SaveIkTargetsToMap(Ubii.TopicData.TopicDataRecord record)
+    private void SaveIkTargetsToMap(TopicDataRecord record)
     {
         for (int i = 0; i < record.Object3DList.Elements.Count; i++)
         {
