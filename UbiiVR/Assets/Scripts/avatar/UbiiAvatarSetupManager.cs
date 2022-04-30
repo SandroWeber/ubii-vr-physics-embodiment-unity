@@ -58,6 +58,7 @@ public class UbiiAvatarSetupManager : MonoBehaviour
 
     private async void Initialize()
     {
+        Debug.Log("Looking for avatar components");
         if (this.componentIkTargets == null) await this.ScanForViableComponents(this.profileComponentIkTargets);
         if (this.componentAvatarPoses == null) await this.ScanForViableComponents(this.profileComponentAvatarPoses);
         if (this.componentAvatarForceControl == null) await this.ScanForViableComponents(this.profileComponentAvatarForceControl);
@@ -84,6 +85,7 @@ public class UbiiAvatarSetupManager : MonoBehaviour
             Topic = UbiiConstants.Instance.DEFAULT_TOPICS.SERVICES.COMPONENT_GET_LIST,
             ComponentList = requestComponentList
         });
+        Debug.Log(reply);
 
         if (reply.ComponentList != null)
         {
@@ -92,19 +94,19 @@ public class UbiiAvatarSetupManager : MonoBehaviour
                 if (componentProfile == this.profileComponentIkTargets)
                 {
                     this.componentIkTargets = reply.ComponentList.Elements[0];
-                    //Debug.Log("Found component for IK targets: " + this.componentIkTargets);
+                    Debug.Log("Found component for IK targets: " + this.componentIkTargets);
                     success = true;
                 }
                 else if (componentProfile == this.profileComponentAvatarPoses)
                 {
                     this.componentAvatarPoses = reply.ComponentList.Elements[0];
-                    //Debug.Log("Found component for avatar poses: " + this.componentAvatarPoses);
+                    Debug.Log("Found component for avatar poses: " + this.componentAvatarPoses);
                     success = true;
                 }
                 else if (componentProfile == this.profileComponentAvatarForceControl)
                 {
                     this.componentAvatarForceControl = reply.ComponentList.Elements[0];
-                    //Debug.Log("Found component for avatar force control: " + this.componentAvatarForceControl);
+                    Debug.Log("Found component for avatar force control: " + this.componentAvatarForceControl);
                     success = true;
                 }
 
@@ -138,7 +140,7 @@ public class UbiiAvatarSetupManager : MonoBehaviour
             if (reply.ClientList.Elements.Count == 1)
             {
                 this.clientPmAvatarMotionControls = reply.ClientList.Elements[0];
-                //Debug.Log("Found client for avatar force control PM: " + this.clientPmAvatarMotionControls);
+                Debug.Log("Found client for avatar force control PM: " + this.clientPmAvatarMotionControls);
             }
             else
             {

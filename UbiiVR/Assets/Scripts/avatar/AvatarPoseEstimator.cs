@@ -15,7 +15,6 @@ public class AvatarPoseEstimator : MonoBehaviour
 {
     public bool ikActive = true;
     public bool useTopicData = true;
-    public UbiiNode ubiiNode = null;
     public UbiiComponentIkTargets ubiiComponentIkTargets = null;
     public VRTrackingManager vrTrackingManager;
     public TrackingHandManager trackingHandManager;
@@ -37,28 +36,17 @@ public class AvatarPoseEstimator : MonoBehaviour
     void Start()
     {
         animator = GetComponent<Animator>();
-        if (ubiiNode == null) ubiiNode = FindObjectOfType<UbiiNode>();
         this.Initialize();
     }
 
     void OnEnable()
     {
         VRTrackingManager.OnInitialized += InitInternalIKTargets;
-        UbiiNode.OnInitialized += OnUbiiNodeInitialized;
     }
 
     void OnDisable()
     {
         VRTrackingManager.OnInitialized -= InitInternalIKTargets;
-        UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
-    }
-
-    void OnUbiiNodeInitialized()
-    {
-        /*if (useTopicData && ubiiNode != null && ubiiComponentIkTargets != null)
-        {
-            InitIKTopics();
-        }*/
     }
 
     public void StartProcessing(Func<TopicDataRecord> GetIkTargets)

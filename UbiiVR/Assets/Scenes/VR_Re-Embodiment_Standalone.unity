@@ -1269,14 +1269,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   avatarPoseEstimation: {fileID: 1654170444}
-  ubiiComponentAvatarCurrentPose: {fileID: 919132148662895447}
-  ubiiComponentAvatarForceControl: {fileID: 919132148662895446}
   publishFrequency: 30
   publishLinearVelocity: 1
   publishAngularVelocity: 1
-  setVelocitiesDirectly: 0
   scalingFactorsVelocities: {x: 0.05, y: 0.05}
   manualPositionOffset: {x: 0, y: 0, z: -1}
+  setVelocitiesDirectly: 0
+  ubiiComponentAvatarForceControl: {fileID: 919132148662895446}
 --- !u!114 &1654170446
 MonoBehaviour:
   m_ObjectHideFlags: 0
