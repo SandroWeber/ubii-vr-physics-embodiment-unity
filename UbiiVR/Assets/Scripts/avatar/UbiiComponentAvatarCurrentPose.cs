@@ -6,6 +6,10 @@ using UnityEngine;
 public class UbiiComponentAvatarCurrentPose : MonoBehaviour
 {
     static string TOPIC_SUFFIX_CURRENT_POSE_LIST = "/avatar/current_pose/list";
+    static string NAME = "Unity Physical Avatar - Current Position and Orientation";
+    static string DESCRIPTION = "Publishes current avatars bone poses as Object3DList. Object3D.Id will be one of UnityEngine.HumanBodyBones (to be changed to .json config). Position and Quaternion also set reflecting current Rigidbody transform.";
+    static string MESSAGE_FORMAT = "ubii.dataStructure.Object3DList";
+    static string[] TAGS = new string[] { "avatar", "bones", "pose", "position", "orientation", "quaternion" };
 
     public int publishFrequency = 30;
     public AvatarPhysicsManager avatarPhysicsManager = null;
@@ -52,13 +56,13 @@ public class UbiiComponentAvatarCurrentPose : MonoBehaviour
     {
         ubiiSpecs = new Ubii.Devices.Component
         {
-            Name = "Unity Physical Avatar - Current Position and Orientation",
-            Description = "Publishes current avatars bone poses as Object3DList. Object3D.Id will be one of UnityEngine.HumanBodyBones (to be changed to .json config). Position and Quaternion also set reflecting current Rigidbody transform.",
-            MessageFormat = "ubii.dataStructure.Object3DList",
+            Name = NAME,
+            Description = DESCRIPTION,
+            MessageFormat = MESSAGE_FORMAT,
             IoType = Ubii.Devices.Component.Types.IOType.Publisher,
             Topic = GetTopicCurrentPoseList()
         };
-        ubiiSpecs.Tags.AddRange(new string[] { "avatar", "bones", "pose", "position", "orientation", "quaternion" });
+        ubiiSpecs.Tags.AddRange(TAGS);
 
         secondsBetweenPublish = 1f / (float)publishFrequency;
         tLastPublish = Time.time;

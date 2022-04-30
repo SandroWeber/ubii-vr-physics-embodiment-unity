@@ -13,22 +13,12 @@ public class UbiiDevicePhysicsAvatar : MonoBehaviour
 
     private UbiiNode ubiiNode = null;
 
-    void Start()
-    {
-    }
-
     void OnEnable()
     {
         this.componentAvatarCurrentPose = FindObjectOfType<UbiiComponentAvatarCurrentPose>();
         this.componentAvatarForceControl = FindObjectOfType<UbiiComponentAvatarForceControl>();
         this.ubiiNode = FindObjectOfType<UbiiNode>();
         UbiiNode.OnInitialized += OnUbiiNodeInitialized;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     public async void OnUbiiNodeInitialized()

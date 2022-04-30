@@ -23,7 +23,7 @@ public class AvatarPhysicsEstimator : MonoBehaviour
     public Vector3 manualPositionOffset = new Vector3();
 
     private UbiiNode ubiiNode = null;
-    private bool ubiiReady = false;
+    private bool running = false;
     private float tLastPublish = 0;
     private float secondsBetweenPublish = 0;
 
@@ -32,22 +32,48 @@ public class AvatarPhysicsEstimator : MonoBehaviour
 
     private SubscriptionToken tokenCurrentPoseList;
 
-    void Start()
-    {
-    }
-
     void OnEnable()
     {
         ubiiNode = FindObjectOfType<UbiiNode>();
-        InitBoneTargetTransforms();
-
         UbiiNode.OnInitialized += OnUbiiNodeInitialized;
+
+        InitBoneTargetTransforms();
     }
 
     void OnDisable()
     {
         UbiiNode.OnInitialized -= OnUbiiNodeInitialized;
-        ubiiReady = false;
+        running = false;
+    }
+
+    void Update()
+    {
+        if (running)
+        {
+            if (setVelocitiesDirectly)
+            {
+                SetTargetVelocitiesDirectly();
+            }
+            else
+            {
+                float tNow = Time.time;
+                if (tNow >= tLastPublish + secondsBetweenPublish)
+                {
+                    PublishIdealVelocities();
+                    tLastPublish = tNow;
+                }
+            }
+        }
+    }
+
+    public void StartProcessing(/*Func<Ubii.TopicData.TopicDataRecord> GetCurrentPoses, Action<Ubii.TopicData.TopicDataRecord> */)
+    {
+        this.running = true;
+    }
+
+    public void StopProcessing()
+    {
+        this.running = false;
     }
 
     void OnUbiiNodeInitialized()
@@ -56,8 +82,6 @@ public class AvatarPhysicsEstimator : MonoBehaviour
         tLastPublish = Time.time;
 
         InitCurrentPoseListTopic();
-
-        ubiiReady = true;
     }
 
     void InitBoneTargetTransforms()
@@ -131,26 +155,6 @@ public class AvatarPhysicsEstimator : MonoBehaviour
                 }
             }
         });
-    }
-
-    void Update()
-    {
-        if (ubiiReady)
-        {
-            if (setVelocitiesDirectly)
-            {
-                SetTargetVelocitiesDirectly();
-            }
-            else
-            {
-                float tNow = Time.time;
-                if (tNow >= tLastPublish + secondsBetweenPublish)
-                {
-                    PublishIdealVelocities();
-                    tLastPublish = tNow;
-                }
-            }
-        }
     }
 
     private void PublishIdealVelocities()

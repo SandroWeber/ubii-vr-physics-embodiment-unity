@@ -49,21 +49,26 @@ public class ProcessingModuleManager
     /// <returns>Created PM</returns>
     public ProcessingModule CreateModule(Ubii.Processing.ProcessingModule specs)
     {
+        if (specs.Id == null)
+        {
+            Debug.LogError("UBII - CreateModule() specifications are missing ID: " + specs);
+            return null;
+        }
+
         ProcessingModule pm = null;
         if (pmDatabase.HasEntry(specs.Name))
         {
-            Ubii.Processing.ProcessingModule detailedSpecs = pmDatabase.GetEntry(specs.Name).GetSpecifications();
-            detailedSpecs.Id = specs.Id;
-            detailedSpecs.NodeId = specs.NodeId;
-            detailedSpecs.SessionId = specs.SessionId;
-
-            pm = pmDatabase.CreateInstance(detailedSpecs);
+            Ubii.Processing.ProcessingModule localSpecs = pmDatabase.GetEntry(specs.Name).GetSpecifications();
+            localSpecs.Id = specs.Id;
+            localSpecs.NodeId = this.nodeID;
+            localSpecs.SessionId = specs.SessionId;
+            pm = pmDatabase.CreateInstance(localSpecs);
         }
         else
         {
             if (specs.OnProcessingStringified == null || specs.OnProcessingStringified == string.Empty)
             {
-                Debug.Log("ProcessingModuleManager can't create PM " + specs.Name + " based on specs, missing OnProcessing definition.");
+                Debug.LogError("UBII - ProcessingModuleManager can't create PM " + specs.Name + " based on specs, missing OnProcessing definition.");
                 return null;
             }
             pm = new ProcessingModule(specs);
@@ -93,7 +98,6 @@ public class ProcessingModuleManager
         }
 
         this.processingModules.Add(pm.Id, pm);
-        //Debug.Log("ProcessingModuleManager.AddModule() - " + pm.ToString());
         return true;
     }
 
@@ -166,7 +170,7 @@ public class ProcessingModuleManager
     /// <param name="pmSpec">Processing module to start</param>
     public void StartModule(Ubii.Processing.ProcessingModule pmSpec)
     {
-        ProcessingModule pm = processingModules[pmSpec.Id];
+        ProcessingModule pm = this.GetModuleByID(pmSpec.Id);
         pm?.Start();
     }
 
@@ -196,14 +200,11 @@ public class ProcessingModuleManager
     /// <param name="sessionID"></param>
     public async Task<bool> ApplyIOMappings(RepeatedField<IOMapping> ioMappings, string sessionID)
     {
-        //Debug.Log("ApplyIOMappings - ioMappings: " + ioMappings);
-
         // TODO: Check this when ioMappings type changes?
         IEnumerable<IOMapping> applicableIOMappings = ioMappings.Where(ioMapping => processingModules.ContainsKey(ioMapping.ProcessingModuleId));
 
         foreach (IOMapping mapping in applicableIOMappings)
         {
-            //Debug.Log("ApplyIOMappings - applicableIOMapping: " + mapping);
             this.ioMappings[mapping.ProcessingModuleId] = mapping;
             ProcessingModule processingModule = GetModuleByID(mapping.ProcessingModuleId) != null ? GetModuleByID(mapping.ProcessingModuleId) : GetModuleByName(mapping.ProcessingModuleName, sessionID);
 
@@ -232,7 +233,8 @@ public class ProcessingModuleManager
     {
         if (!IsValidIOMapping(processingModule, inputMapping))
         {
-            Debug.LogError("PM-Manager: IO-Mapping for module " + processingModule.Name + "->" + inputMapping.InputName + " is invalid");
+            Debug.LogError("PM-Manager: IO-Mapping for module " + processingModule.Name + "->" + inputMapping.InputName +
+              " is invalid:\nPM.Inputs: " + processingModule.Inputs + "\nInputMapping: " + inputMapping);
             return false;
         }
 
@@ -256,7 +258,7 @@ public class ProcessingModuleManager
                 }
                 else
                 {
-                    callback = _ => {};
+                    callback = _ => { };
                 }
 
                 // subscribe to topic and save token

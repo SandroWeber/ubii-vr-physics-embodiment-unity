@@ -7,7 +7,7 @@ public class UbiiComponentIkTargets : MonoBehaviour
     static string NAME = "Unity Physical Avatar - User IK Targets";
     static string DESCRIPTION = "Publishes IK Target Positions as Pose3D on individual topics for each target.";
     static string MESSAGE_FORMAT = "ubii.dataStructure.Object3DList";
-    static string[] TAGS = new string[] { "avatar", "user tracking", "IK targets" };
+    static string[] TAGS = new string[] { "avatar", "user tracking", "ik", "targets", "ik targets", "inverse kinematics" };
     static Ubii.Devices.Component.Types.IOType IO_TYPE = Ubii.Devices.Component.Types.IOType.Publisher;
 
     public int publishFrequency = 15;

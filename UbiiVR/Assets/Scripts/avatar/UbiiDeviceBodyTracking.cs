@@ -12,21 +12,11 @@ public class UbiiDeviceBodyTracking : MonoBehaviour
 
     private UbiiNode ubiiNode = null;
 
-    void Start()
-    {
-    }
-
     void OnEnable()
     {
         this.componentIkTargets = FindObjectOfType<UbiiComponentIkTargets>();
         this.ubiiNode = FindObjectOfType<UbiiNode>();
         UbiiNode.OnInitialized += OnUbiiNodeInitialized;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     public async void OnUbiiNodeInitialized()

@@ -97,7 +97,6 @@ public class UbiiNode : MonoBehaviour, IUbiiNode
         };
 
         List<Ubii.Processing.ProcessingModule> pmDatabaseList = processingModuleDatabase.GetAllSpecifications();
-        //Debug.Log("Node init PM list: " + pmDatabaseList.Count);
         foreach (Ubii.Processing.ProcessingModule pm in pmDatabaseList)
         {
             clientNodeSpecification.ProcessingModules.Add(pm);
@@ -282,6 +281,7 @@ public class UbiiNode : MonoBehaviour, IUbiiNode
     /// <returns></returns>
     private async Task SubscribeSessionInfo()
     {
+        await SubscribeTopic(UbiiConstants.Instance.DEFAULT_TOPICS.INFO_TOPICS.NEW_SESSION, OnNewSession);
         await SubscribeTopic(UbiiConstants.Instance.DEFAULT_TOPICS.INFO_TOPICS.START_SESSION, OnStartSession);
         await SubscribeTopic(UbiiConstants.Instance.DEFAULT_TOPICS.INFO_TOPICS.STOP_SESSION, OnStopSession);
     }
@@ -290,24 +290,22 @@ public class UbiiNode : MonoBehaviour, IUbiiNode
     /// Callback for start session subscription
     /// </summary>
     /// <param name="record"></param>
-    private async void OnStartSession(TopicDataRecord record)
+    private async void OnNewSession(TopicDataRecord record)
     {
-        List<ProcessingModule> localPMs = new List<ProcessingModule>();
-        foreach (Ubii.Processing.ProcessingModule pm in record.Session.ProcessingModules)
+        List<Ubii.Processing.ProcessingModule> localPMs = new List<Ubii.Processing.ProcessingModule>();
+        foreach (Ubii.Processing.ProcessingModule pmSpec in record.Session.ProcessingModules)
         {
-            if (pm.NodeId == this.Id)
+            if (pmSpec.NodeId == this.Id)
             {
-                //Debug.Log("UbiiNode.OnStartSession() - applicable pm: " + pm);
-                ProcessingModule newModule = this.processingModuleManager.CreateModule(pm);
-                //Debug.Log("UbiiNode.OnStartSession() - created instance: " + newModule.ToString());
-                if (newModule != null) localPMs.Add(newModule);
+                ProcessingModule newModule = this.processingModuleManager.CreateModule(pmSpec);
+                if (newModule != null) localPMs.Add(pmSpec);
             }
         }
 
         Google.Protobuf.Collections.RepeatedField<Ubii.Processing.ProcessingModule> elements = new Google.Protobuf.Collections.RepeatedField<Ubii.Processing.ProcessingModule>();
-        foreach (ProcessingModule pm in localPMs)
+        foreach (Ubii.Processing.ProcessingModule pmSpec in localPMs)
         {
-            elements.Add(pm.ToProtobuf());
+            elements.Add(pmSpec);
         }
         ServiceRequest pmRuntimeAddRequest = new ServiceRequest
         {
@@ -317,18 +315,16 @@ public class UbiiNode : MonoBehaviour, IUbiiNode
                 Elements = { elements }
             }
         };
-        //Debug.Log(nameof(OnStartSession) + " - runtime add request: " + pmRuntimeAddRequest);
 
         ServiceReply reply = await CallService(pmRuntimeAddRequest);
-        //Debug.Log("start session runtime add PMs reply: " + reply);
         if (reply.Success != null)
         {
             try
             {
                 bool success = await this.processingModuleManager.ApplyIOMappings(record.Session.IoMappings, record.Session.Id);
-                foreach (var pm in localPMs)
+                foreach (var pmSpec in localPMs)
                 {
-                    this.processingModuleManager.StartModule(new Ubii.Processing.ProcessingModule { Id = pm.Id });
+                    this.processingModuleManager.StartModule(pmSpec);
                 }
             }
             catch (Exception e)
@@ -340,6 +336,12 @@ public class UbiiNode : MonoBehaviour, IUbiiNode
         {
             //TODO: delete modules 
         }
+    }
+
+    private void OnStartSession(TopicDataRecord record)
+    {
+        Debug.Log("OnStartSession");
+        Debug.Log(record);
     }
 
     /// <summary>

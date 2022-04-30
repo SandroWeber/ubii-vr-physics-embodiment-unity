@@ -29,13 +29,16 @@ public class AvatarPoseEstimator : MonoBehaviour
     private Queue<Vector3> groundCenterTrajectory = new Queue<Vector3>();
     private int groundCenterTrajectorySize = 20;
     private bool initialized = false;
+    private bool running = false;
+    private Func<Ubii.TopicData.TopicDataRecord> GetIkTargets = null;
 
-    private SubscriptionToken tokenIkTargetPose;
+    private SubscriptionToken tokenIkTargets;
 
     void Start()
     {
         animator = GetComponent<Animator>();
         if (ubiiNode == null) ubiiNode = FindObjectOfType<UbiiNode>();
+        this.Initialize();
     }
 
     void OnEnable()
@@ -52,13 +55,24 @@ public class AvatarPoseEstimator : MonoBehaviour
 
     void OnUbiiNodeInitialized()
     {
-        if (useTopicData && ubiiNode != null && ubiiComponentIkTargets != null)
+        /*if (useTopicData && ubiiNode != null && ubiiComponentIkTargets != null)
         {
             InitIKTopics();
-        }
+        }*/
     }
 
-    async void InitIKTopics()
+    public void StartProcessing(Func<Ubii.TopicData.TopicDataRecord> GetIkTargets)
+    {
+        this.GetIkTargets = GetIkTargets;
+        running = true;
+    }
+
+    public void StopProcessing()
+    {
+        running = false;
+    }
+
+    void Initialize()
     {
         foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
         {
@@ -71,31 +85,32 @@ public class AvatarPoseEstimator : MonoBehaviour
             });
         }
 
-        tokenIkTargetPose = await ubiiNode.SubscribeTopic(ubiiComponentIkTargets.GetTopicIKTargets(), (Ubii.TopicData.TopicDataRecord record) =>
-        {
-            for (int i = 0; i < record.Object3DList.Elements.Count; i++)
-            {
-                string ikTargetString = record.Object3DList.Elements[i].Id;
-                Ubii.DataStructure.Pose3D pose3D = record.Object3DList.Elements[i].Pose;
-                IK_TARGET ikTarget;
-                if (IK_TARGET.TryParse(ikTargetString, out ikTarget))
-                {
-                    UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
-                    pose.position.Set(
-                        (float)pose3D.Position.X,
-                        (float)pose3D.Position.Y,
-                        (float)pose3D.Position.Z);
-                    pose.rotation.Set(
-                        (float)pose3D.Quaternion.X,
-                        (float)pose3D.Quaternion.Y,
-                        (float)pose3D.Quaternion.Z,
-                        (float)pose3D.Quaternion.W);
-                    mapIKTarget2UbiiPose[ikTarget] = pose;
-                }
-            }
-        });
-
         initialized = true;
+    }
+
+    //TODO: intermediate map saving poses from topic data might not be necessary anymore, saves some complexity
+    private void SaveIkTargetsToMap(Ubii.TopicData.TopicDataRecord record)
+    {
+        for (int i = 0; i < record.Object3DList.Elements.Count; i++)
+        {
+            string ikTargetString = record.Object3DList.Elements[i].Id;
+            Ubii.DataStructure.Pose3D pose3D = record.Object3DList.Elements[i].Pose;
+            IK_TARGET ikTarget;
+            if (IK_TARGET.TryParse(ikTargetString, out ikTarget))
+            {
+                UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
+                pose.position.Set(
+                    (float)pose3D.Position.X,
+                    (float)pose3D.Position.Y,
+                    (float)pose3D.Position.Z);
+                pose.rotation.Set(
+                    (float)pose3D.Quaternion.X,
+                    (float)pose3D.Quaternion.Y,
+                    (float)pose3D.Quaternion.Z,
+                    (float)pose3D.Quaternion.W);
+                mapIKTarget2UbiiPose[ikTarget] = pose;
+            }
+        }
     }
 
     void InitInternalIKTargets()
@@ -111,8 +126,9 @@ public class AvatarPoseEstimator : MonoBehaviour
 
     void Update()
     {
-        if (useTopicData && initialized)
+        if (useTopicData && initialized && running)
         {
+            this.SaveIkTargetsToMap(this.GetIkTargets());
             foreach (IK_TARGET ikTarget in Enum.GetValues(typeof(IK_TARGET)))
             {
                 UbiiPose3D pose = mapIKTarget2UbiiPose[ikTarget];
@@ -128,7 +144,7 @@ public class AvatarPoseEstimator : MonoBehaviour
 
     void OnAnimatorIK()
     {
-        if (!initialized) return;
+        if (!running) return;
 
         Transform ikTargetLookAt = mapIKTargetTransforms[IK_TARGET.VIEWING_DIRECTION];
         Transform ikTargetLeftHand = mapIKTargetTransforms[IK_TARGET.HAND_LEFT];

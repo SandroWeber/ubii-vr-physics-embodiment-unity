@@ -85,13 +85,12 @@ public class UbiiNetworkClient
             return null;
         }
 
-        Debug.Log("UBII - connecting to " + hostURL);
+        Debug.Log("UBII - connecting to " + hostURL + " ...");
 
         this.serverSpecification = await RetrieveServerConfig();
         if (this.serverSpecification == null) return null;
         this.clientSpecification = await RegisterAsClient(clientSpecs);
         if (this.clientSpecification == null) return null;
-        Debug.Log("UBII - client specs: " + this.clientSpecification);
         InitTopicDataClient();
 
         return clientSpecification;
@@ -134,7 +133,6 @@ public class UbiiNetworkClient
         };
         //if(isDedicatedProcessingNode)
         //  TODO:  clientRegistration.Client.ProcessingModules = ...
-        Debug.Log("UBII UbiiNetworkClient.RegisterAsClient(): " + clientRegistration);
 
         ServiceReply reply = await CallService(clientRegistration);
         if (reply == null)

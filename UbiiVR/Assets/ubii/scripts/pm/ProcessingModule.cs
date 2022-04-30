@@ -12,7 +12,7 @@ using Ubii.TopicData;
 [Serializable]
 public class ProcessingModule : IProcessingModule
 {
-    private Ubii.Processing.ProcessingModule specs;
+    protected Ubii.Processing.ProcessingModule specs;
     public Ubii.Processing.ProcessingModule Specs { get { return specs; } }
 
     public Dictionary<string, TopicDataRecord> processingInputRecords;
@@ -29,6 +29,7 @@ public class ProcessingModule : IProcessingModule
     public string SessionId { get { return this.specs.SessionId; } }
     public Ubii.Processing.ProcessingModule.Types.Language Language { get { return this.specs.Language; } }
     public ProcessingMode ProcessingMode { get { return this.specs.ProcessingMode; } }
+    public bool processInScriptEventFunctions = false;  // Unity3D specific option to process within lifecycle event functions like Update(), FixedUpdate(), etc.
     public Ubii.Processing.ProcessingModule.Types.Status Status { get { return this.specs.Status; } }
     public RepeatedField<Ubii.Processing.ModuleIO> Inputs { get { return this.specs.Inputs; } }
     public RepeatedField<Ubii.Processing.ModuleIO> Outputs { get { return this.specs.Outputs; } }
@@ -41,10 +42,7 @@ public class ProcessingModule : IProcessingModule
 
         // Auto-generated, remove if code above works
         this.specs = specs;
-
-        this.specs.Id = this.specs.Id == null ? Guid.NewGuid().ToString() : this.specs.Id;
         this.specs.Language = Ubii.Processing.ProcessingModule.Types.Language.Cs;
-
         if (this.specs.ProcessingMode == null)
         {
             this.specs.ProcessingMode = new ProcessingMode
@@ -67,6 +65,10 @@ public class ProcessingModule : IProcessingModule
         if (this.specs.ProcessingMode.ModeCase == ProcessingMode.ModeOneofCase.Frequency) // Oder: processingMode.Frequency != null
         {
             StartProcessingByFrequency();
+        }
+        else if (this.specs.ProcessingMode.ModeCase == ProcessingMode.ModeOneofCase.Free)
+        {
+            StartProcessingByFree();
         }
         // TODO: Add other processingModes later
 
@@ -147,6 +149,11 @@ public class ProcessingModule : IProcessingModule
         }, token);
     }
 
+    protected virtual void StartProcessingByFree()
+    {
+        throw new NotImplementedException();
+    }
+
     #region lifecycle
 
     public virtual void OnCreated() { }
@@ -179,7 +186,6 @@ public class ProcessingModule : IProcessingModule
 
     public void SetInputGetter(string inputName, Func<TopicDataRecord> getter)
     {
-        //Debug.Log("SetInputGetter() - " + this.Name + "->" + inputName);
         if (this.dictInputGetters.ContainsKey(inputName))
         {
             this.dictInputGetters[inputName] = getter;
@@ -238,7 +244,7 @@ public class ProcessingModule : IProcessingModule
         return this.specs;
     }
 
-    public string ToString()
+    override public string ToString()
     {
         return "ProcessingModule '" + this.Name + "' (ID " + this.Id + ")";
     }

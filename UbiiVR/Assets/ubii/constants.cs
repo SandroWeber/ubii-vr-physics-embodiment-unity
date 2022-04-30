@@ -19,6 +19,7 @@ public sealed class UbiiConstants
         public string DEVICE_DEREGISTRATION;
         public string DEVICE_GET;
         public string DEVICE_GET_LIST;
+        public string COMPONENT_GET_LIST;
 
         public string PM_DATABASE_SAVE;
         public string PM_DATABASE_DELETE;
@@ -30,6 +31,8 @@ public sealed class UbiiConstants
         public string PM_RUNTIME_REMOVE;
         public string PM_RUNTIME_GET;
         public string PM_RUNTIME_GET_LIST;
+        public string PM_REGISTRY_ADD;
+        public string PM_REGISTRY_REMOVE;
 
         public string SESSION_DATABASE_SAVE;
         public string SESSION_DATABASE_DELETE;

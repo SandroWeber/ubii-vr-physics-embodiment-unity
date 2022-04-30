@@ -1,64 +1,76 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 
-//[RequireComponent(typeof(BoneMeshContainer))]
-public class UbiiProcModuleAvatarMotionControls : MonoBehaviour
+public class UbiiProcModuleAvatarMotionControls : ProcessingModule
 {
-
-    private UbiiNode ubiiNode = null;
     private bool ubiiReady = false;
-    private Ubii.Processing.ProcessingModule ubiiSpecs = null;
+    private AvatarPoseEstimator avatarPoseEstimator = null;
+    private AvatarPhysicsEstimator avatarPhysicsEstimator = null;
 
-    void Start()
+    public UbiiProcModuleAvatarMotionControls(Ubii.Processing.ProcessingModule specs, AvatarPoseEstimator avatarPoseEstimator, AvatarPhysicsEstimator avatarPhysicsEstimator)
+      : base(specs)
     {
+        this.avatarPoseEstimator = avatarPoseEstimator;
+        this.avatarPhysicsEstimator = avatarPhysicsEstimator;
     }
 
-    void OnEnable()
+    protected override void StartProcessingByFree()
     {
-        ubiiSpecs = new Ubii.Processing.ProcessingModule
+        Debug.Log("### UbiiProcModuleAvatarMotionControls.Start()");
+        this.avatarPoseEstimator.StartProcessing(this.dictInputGetters["ikTargets"]);
+        this.avatarPhysicsEstimator.StartProcessing();
+    }
+
+    public override void OnHalted()
+    {
+        this.avatarPhysicsEstimator.StopProcessing();
+    }
+
+    public static Ubii.Processing.ProcessingModule GetSpecifications()
+    {
+        Ubii.Processing.ProcessingModule specs = new Ubii.Processing.ProcessingModule
         {
             Name = "Unity Physical Avatar - Motion Controls PM",
             Description = "Input require IK Targets and current pose of avatar. Output are velocities to be applied to the avatar.",
-            ProcessingMode = new Ubii.Processing.ProcessingMode {
-                Frequency = new Ubii.Processing.ProcessingMode.Types.Frequency {
-                    Hertz = (int) Math.Floor(1f / Time.fixedDeltaTime)
-                }
+            ProcessingMode = new Ubii.Processing.ProcessingMode
+            {
+                Free = new Ubii.Processing.ProcessingMode.Types.Free { }
             }
         };
-        ubiiSpecs.Authors.AddRange(new string[] { "Sandro Weber (webers@in.tum.de)" });
-        ubiiSpecs.Tags.AddRange(new string[] { "avatar", "motion control", "inverse kinematics", "velocity" });
+        specs.Authors.AddRange(new string[] { "Sandro Weber (webers@in.tum.de)" });
+        specs.Tags.AddRange(new string[] { "avatar", "motion control", "inverse kinematics", "velocity" });
+        specs.Language = Ubii.Processing.ProcessingModule.Types.Language.Cs;
 
-        ubiiSpecs.Inputs.AddRange(new Ubii.Processing.ModuleIO[] {
+        specs.Inputs.AddRange(new Ubii.Processing.ModuleIO[] {
             new Ubii.Processing.ModuleIO { InternalName = "ikTargets", MessageFormat = "ubii.dataStructure.Object3DList" },
             new Ubii.Processing.ModuleIO { InternalName = "avatarCurrentPoses", MessageFormat = "ubii.dataStructure.Object3DList" }
         });
-        ubiiSpecs.Outputs.AddRange(new Ubii.Processing.ModuleIO[] {
+        specs.Outputs.AddRange(new Ubii.Processing.ModuleIO[] {
             new Ubii.Processing.ModuleIO { InternalName = "avatarTargetVelocities", MessageFormat = "ubii.dataStructure.Object3DList" }
         });
 
-        ubiiNode = FindObjectOfType<UbiiNode>();
-        UbiiNode.OnInitialized += OnUbiiInitialized;
+        return specs;
+    }
+}
+
+public class UbiiProcModuleAvatarMotionControlsDBEntry : IProcessingModuleDatabaseEntry
+{
+    private AvatarPoseEstimator avatarPoseEstimator = null;
+    private AvatarPhysicsEstimator avatarPhysicsEstimator = null;
+
+    public UbiiProcModuleAvatarMotionControlsDBEntry(AvatarPoseEstimator avatarPoseEstimator, AvatarPhysicsEstimator avatarPhysicsEstimator)
+    {
+        this.avatarPoseEstimator = avatarPoseEstimator;
+        this.avatarPhysicsEstimator = avatarPhysicsEstimator;
     }
 
-    void OnDisable()
+    public Ubii.Processing.ProcessingModule GetSpecifications()
     {
-        UbiiNode.OnInitialized -= OnUbiiInitialized;
-        ubiiReady = false;
+        return UbiiProcModuleAvatarMotionControls.GetSpecifications();
     }
 
-    void OnUbiiInitialized()
+    public ProcessingModule CreateInstance(Ubii.Processing.ProcessingModule specs)
     {
-        ubiiReady = true;
-        /*ubiiNode.CallService(new Ubii.Services.ServiceRequest {
-            Topic = UbiiConstants.DefaultTopics.SERVICES.
-        })*/
-    }
-
-    void Update()
-    {
-        if (ubiiReady)
-        {
-        }
+        return new UbiiProcModuleAvatarMotionControls(specs, this.avatarPoseEstimator, this.avatarPhysicsEstimator);
     }
 }
